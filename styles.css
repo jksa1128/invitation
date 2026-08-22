@@ -210,7 +210,7 @@ a {
    Falling Petals Canvas
    ═══════════════════════════════════════════ */
 .petal-canvas {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 100;
   pointer-events: none;
@@ -553,11 +553,6 @@ a {
   gap: 0.5rem;
 }
 
-.greeting__parents .parent-dot {
-  color: var(--color-accent);
-  font-size: 0.5rem;
-}
-
 .greeting__parents .child-name {
   font-weight: 500;
 }
@@ -726,6 +721,54 @@ a {
 
 .gallery__item:hover img {
   transform: scale(1.08);
+}
+
+/* ═══════════════════════════════════════════
+   Background Music Toggle
+   ═══════════════════════════════════════════ */
+.music-toggle {
+  position: fixed;
+  top: calc(1rem + var(--safe-top));
+  right: calc(1rem + var(--safe-right));
+  z-index: 8000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 50%;
+  color: var(--color-white);
+  background: rgba(58, 50, 40, 0.52);
+  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: background var(--transition), transform var(--transition);
+}
+
+.music-toggle:hover,
+.music-toggle:focus-visible {
+  background: rgba(58, 50, 40, 0.72);
+  transform: scale(1.05);
+}
+
+.music-toggle__icon {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.music-toggle__icon--muted,
+.music-toggle.is-muted .music-toggle__icon--playing {
+  display: none;
+}
+
+.music-toggle.is-muted .music-toggle__icon--muted {
+  display: block;
 }
 
 .gallery__item.is-collapsed {
@@ -1201,6 +1244,7 @@ a {
   .petal-canvas,
   .photo-modal,
   .toast,
+  .music-toggle,
   .countdown,
   .calendar-actions,
   .location__links,

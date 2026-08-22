@@ -122,6 +122,44 @@
   }
 
   /* ═══════════════════════════════════════════
+     Background Music
+     ═══════════════════════════════════════════ */
+
+  function initBackgroundMusic() {
+    const audio = $('#backgroundMusic');
+    const toggle = $('#musicToggle');
+    if (!audio || !toggle) return;
+
+    audio.volume = 0.25;
+
+    const updateToggle = () => {
+      const isMuted = audio.muted;
+      toggle.classList.toggle('is-muted', isMuted);
+      toggle.setAttribute('aria-pressed', String(isMuted));
+      toggle.setAttribute('aria-label', isMuted ? '배경음악 재생' : '배경음악 음소거');
+    };
+
+    const playMusic = () => {
+      if (!audio.muted && audio.paused) {
+        audio.play().catch(() => {
+          // 모바일 브라우저가 자동재생을 막으면 다음 사용자 터치에서 다시 시도합니다.
+        });
+      }
+    };
+
+    toggle.addEventListener('click', () => {
+      audio.muted = !audio.muted;
+      updateToggle();
+      if (!audio.muted) playMusic();
+    });
+
+    $('#curtainBtn')?.addEventListener('click', playMusic);
+    document.addEventListener('pointerdown', playMusic, { once: true });
+    updateToggle();
+    playMusic();
+  }
+
+  /* ═══════════════════════════════════════════
      KakaoTalk Share
      ═══════════════════════════════════════════ */
 
@@ -255,8 +293,8 @@
     const PETAL_COUNT = 25;
 
     function resize() {
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
+      width = canvas.width = canvas.clientWidth;
+      height = canvas.height = canvas.clientHeight;
     }
 
     resize();
@@ -401,12 +439,10 @@
     const parentsHTML = `
       <div class="parent-row">
         ${parentLine(g.father, g.mother, g.fatherDeceased, g.motherDeceased)}
-        <span class="parent-dot">●</span>
         의 아들 <span class="child-name">${g.name}</span>
       </div>
       <div class="parent-row">
         ${parentLine(b.father, b.mother, b.fatherDeceased, b.motherDeceased)}
-        <span class="parent-dot">●</span>
         의 딸 <span class="child-name">${b.name}</span>
       </div>
     `;
@@ -587,18 +623,28 @@
   let touchEndX = 0;
   let touchStartY = 0;
   let touchEndY = 0;
+  let modalScrollY = 0;
 
   function openPhotoModal(images, index) {
     modalImages = images;
     modalIndex = index;
+    modalScrollY = window.scrollY || window.pageYOffset;
     showModalImage();
     $('#photoModal').classList.add('is-open');
+    document.body.style.top = `-${modalScrollY}px`;
     document.body.classList.add('no-scroll');
   }
 
   function closePhotoModal() {
     $('#photoModal').classList.remove('is-open');
     document.body.classList.remove('no-scroll');
+    document.body.style.top = '';
+
+    // html의 smooth scrolling이 복원 동작에 개입하지 않도록 즉시 원래 위치로 이동한다.
+    const previousScrollBehavior = document.documentElement.style.scrollBehavior;
+    document.documentElement.style.scrollBehavior = 'auto';
+    window.scrollTo(0, modalScrollY);
+    document.documentElement.style.scrollBehavior = previousScrollBehavior;
   }
 
   function showModalImage() {
@@ -816,6 +862,7 @@
 
   async function init() {
     setMetaTags();
+    initBackgroundMusic();
     initCurtain();
     initHero();
     initCountdown();
