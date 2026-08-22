@@ -12,7 +12,7 @@
 
   const $ = (sel, ctx = document) => ctx.querySelector(sel);
   const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
-  const ASSET_VERSION = '20260823-4';
+  const ASSET_VERSION = '20260823-8';
   const INITIAL_GALLERY_VISIBLE_COUNT = 9;
   const STORY_PLACEHOLDER_COUNT = 2;
 
@@ -421,6 +421,7 @@
         document.documentElement.style.setProperty('--hero-height', `${window.innerHeight}px`);
       }, 300);
     });
+
   }
 
   /* ═══════════════════════════════════════════

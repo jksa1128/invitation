@@ -25,7 +25,7 @@
     // Lock the opening viewport height before the hero is first rendered.
     document.documentElement.style.setProperty('--hero-height', window.innerHeight + 'px');
   </script>
-  <link rel="stylesheet" href="styles.css?v=20260823-4">
+  <link rel="stylesheet" href="styles.css?v=20260823-8">
   <script src="config.js"></script>
 </head>
 <body>
@@ -77,15 +77,15 @@
       <!-- Falling petals are clipped to the hero image area. -->
       <canvas id="petalCanvas" class="petal-canvas"></canvas>
       <div class="hero__content">
-        <p class="hero__label animate-item" data-animate="fade-down">Wedding Invitation</p>
-        <h1 class="hero__names animate-item" data-animate="fade-up" id="heroNames"></h1>
-        <div class="hero__divider animate-item" data-animate="fade-in"></div>
-        <p class="hero__date animate-item" data-animate="fade-up" id="heroDate"></p>
-        <p class="hero__venue animate-item" data-animate="fade-up" id="heroVenue"></p>
+        <p class="hero__label">Wedding Invitation</p>
+        <h1 class="hero__names" id="heroNames"></h1>
+        <div class="hero__divider"></div>
+        <p class="hero__date" id="heroDate"></p>
+        <p class="hero__venue" id="heroVenue"></p>
       </div>
 
       <!-- Countdown -->
-      <div class="countdown animate-item" data-animate="fade-up" id="countdown">
+      <div class="countdown" id="countdown">
         <p class="countdown__label" id="countdownLabel"></p>
         <div class="countdown__timer">
           <div class="countdown__item">
@@ -238,6 +238,6 @@
 
   <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.8.2/kakao.min.js"
     crossorigin="anonymous"></script>
-  <script src="script.js?v=20260823-4"></script>
+  <script src="script.js?v=20260823-8"></script>
 </body>
 </html>
