@@ -834,6 +834,12 @@ a {
   width: 100%;
   aspect-ratio: 16 / 10;
   object-fit: cover;
+  cursor: zoom-in;
+}
+
+.location__map-img:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -4px;
 }
 
 .location__links {

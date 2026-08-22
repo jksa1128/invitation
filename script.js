@@ -719,11 +719,20 @@
 
   function initLocation() {
     const w = CONFIG.wedding;
+    const mapImagePath = 'images/location/1.jpg?v=20260823-1';
+    const mapImage = $('#locationMapImg');
     $('#locationVenue').textContent = w.venue;
     $('#locationHall').textContent = w.hall;
     $('#locationAddress').textContent = w.address;
     $('#locationTel').textContent = w.tel ? `Tel. ${w.tel}` : '';
-    $('#locationMapImg').src = 'images/location/1.jpg';
+    mapImage.src = mapImagePath;
+    mapImage.addEventListener('click', () => openPhotoModal([mapImagePath], 0));
+    mapImage.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openPhotoModal([mapImagePath], 0);
+      }
+    });
     $('#kakaoMapBtn').href = w.mapLinks.kakao || '#';
     $('#naverMapBtn').href = w.mapLinks.naver || '#';
 
