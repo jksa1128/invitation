@@ -386,7 +386,8 @@ a {
 .hero {
   position: relative;
   min-height: 100vh;
-  min-height: 100dvh;
+  /* Keep the hero stable while mobile browser chrome opens and closes. */
+  min-height: 100svh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1106,39 +1107,27 @@ a {
 /* ═══════════════════════════════════════════
    Loading Placeholder
    ═══════════════════════════════════════════ */
-.loading-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: var(--spacing-lg) 0;
-}
-
-.loading-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--color-accent-light);
+.loading-photo-placeholder {
+  background: var(--color-border);
   animation: loadingPulse 1.2s ease-in-out infinite;
 }
 
-.loading-dot:nth-child(2) {
-  animation-delay: 0.2s;
+.story__photos .loading-photo-placeholder {
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-md);
 }
 
-.loading-dot:nth-child(3) {
-  animation-delay: 0.4s;
+.gallery__grid .loading-photo-placeholder {
+  aspect-ratio: 1;
+  border-radius: 2px;
 }
 
 @keyframes loadingPulse {
   0%, 80%, 100% {
-    opacity: 0.3;
-    transform: scale(0.8);
+    opacity: 0.35;
   }
   40% {
-    opacity: 1;
-    transform: scale(1.2);
+    opacity: 0.75;
   }
 }
 

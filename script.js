@@ -12,6 +12,9 @@
 
   const $ = (sel, ctx = document) => ctx.querySelector(sel);
   const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
+  const ASSET_VERSION = '20260823-3';
+  const INITIAL_GALLERY_VISIBLE_COUNT = 9;
+  const STORY_PLACEHOLDER_COUNT = 2;
 
   function formatDate(dateStr, timeStr) {
     const d = new Date(`${dateStr}T${timeStr}:00`);
@@ -48,7 +51,7 @@
                 return;
             }
             const img = new Image();
-            const path = `images/${folder}/${current}.jpg`;
+            const path = `images/${folder}/${current}.jpg?v=${ASSET_VERSION}`;
             img.onload = function() {
                 images.push(path);
                 consecutiveFails = 0;
@@ -291,6 +294,8 @@
     let width, height;
     const petals = [];
     const PETAL_COUNT = 25;
+    let animationFrameId = null;
+    let isHeroVisible = true;
 
     function resize() {
       width = canvas.width = canvas.clientWidth;
@@ -298,7 +303,14 @@
     }
 
     resize();
-    window.addEventListener('resize', resize);
+
+    // Mobile browser chrome also emits resize events while scrolling. Observe the
+    // stable hero canvas itself so those events do not recreate its bitmap.
+    if ('ResizeObserver' in window) {
+      new ResizeObserver(resize).observe(canvas);
+    } else {
+      window.addEventListener('orientationchange', resize);
+    }
 
     class Petal {
       constructor() {
@@ -357,15 +369,39 @@
     }
 
     function animate() {
+      if (!isHeroVisible) {
+        animationFrameId = null;
+        return;
+      }
+
       ctx.clearRect(0, 0, width, height);
       petals.forEach(p => {
         p.update();
         p.draw();
       });
-      requestAnimationFrame(animate);
+      animationFrameId = requestAnimationFrame(animate);
     }
 
-    animate();
+    function startAnimation() {
+      if (animationFrameId === null) {
+        animationFrameId = requestAnimationFrame(animate);
+      }
+    }
+
+    const hero = canvas.closest('.hero');
+    if (hero && 'IntersectionObserver' in window) {
+      new IntersectionObserver(([entry]) => {
+        isHeroVisible = entry.isIntersecting;
+        if (isHeroVisible) {
+          startAnimation();
+        } else if (animationFrameId !== null) {
+          cancelAnimationFrame(animationFrameId);
+          animationFrameId = null;
+        }
+      }).observe(hero);
+    }
+
+    startAnimation();
   }
 
   /* ═══════════════════════════════════════════
@@ -545,9 +581,7 @@
     $('#storyContent').textContent = CONFIG.story.content;
 
     const container = $('#storyPhotos');
-    // Remove loading placeholder if present
-    const placeholder = container.querySelector('.loading-placeholder');
-    if (placeholder) placeholder.remove();
+    container.querySelectorAll('.loading-photo-placeholder').forEach((item) => item.remove());
 
     if (storyImages.length === 0) return;
 
@@ -568,10 +602,8 @@
   function initGallery(galleryImages) {
     const grid = $('#galleryGrid');
     const toggleButton = $('#galleryToggleBtn');
-    const initialVisibleCount = 9;
-    // Remove loading placeholder if present
-    const placeholder = grid.querySelector('.loading-placeholder');
-    if (placeholder) placeholder.remove();
+    const initialVisibleCount = INITIAL_GALLERY_VISIBLE_COUNT;
+    grid.querySelectorAll('.loading-photo-placeholder').forEach((item) => item.remove());
 
     if (galleryImages.length === 0) {
       // Hide gallery section if no images found
@@ -818,10 +850,15 @@
     const storyPhotos = $('#storyPhotos');
     const galleryGrid = $('#galleryGrid');
 
-    const placeholderHTML = '<div class="loading-placeholder"><span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span></div>';
-
-    if (storyPhotos) storyPhotos.innerHTML = placeholderHTML;
-    if (galleryGrid) galleryGrid.innerHTML = placeholderHTML;
+    // Reserve the final photo layout before async image detection completes.
+    // This prevents scroll anchoring from moving the page when photos are added.
+    const placeholder = '<div class="loading-photo-placeholder" aria-hidden="true"></div>';
+    if (storyPhotos) {
+      storyPhotos.innerHTML = placeholder.repeat(STORY_PLACEHOLDER_COUNT);
+    }
+    if (galleryGrid) {
+      galleryGrid.innerHTML = placeholder.repeat(INITIAL_GALLERY_VISIBLE_COUNT);
+    }
   }
 
   /* ═══════════════════════════════════════════
