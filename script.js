@@ -125,28 +125,66 @@
      KakaoTalk Share
      ═══════════════════════════════════════════ */
 
+  const KAKAO_SDK_URL = 'https://t1.kakaocdn.net/kakao_js_sdk/2.8.2/kakao.min.js';
+  let kakaoSdkPromise = null;
+
+  function loadKakaoSdk() {
+    if (window.Kakao) return Promise.resolve(window.Kakao);
+    if (kakaoSdkPromise) return kakaoSdkPromise;
+
+    kakaoSdkPromise = new Promise((resolve, reject) => {
+      const retryScript = document.createElement('script');
+      const timeout = setTimeout(() => reject(new Error('Kakao SDK load timeout')), 10000);
+
+      retryScript.src = `${KAKAO_SDK_URL}?retry=${Date.now()}`;
+      retryScript.crossOrigin = 'anonymous';
+      retryScript.onload = () => {
+        clearTimeout(timeout);
+        if (window.Kakao) {
+          resolve(window.Kakao);
+        } else {
+          reject(new Error('Kakao SDK is unavailable after loading'));
+        }
+      };
+      retryScript.onerror = () => {
+        clearTimeout(timeout);
+        reject(new Error('Kakao SDK request failed'));
+      };
+      document.head.appendChild(retryScript);
+    }).catch((error) => {
+      kakaoSdkPromise = null;
+      throw error;
+    });
+
+    return kakaoSdkPromise;
+  }
+
   function initKakaoShare() {
     const button = $('#kakaoShareBtn');
     const share = CONFIG.kakaoShare || {};
     if (!button) return;
 
-    button.addEventListener('click', () => {
+    // 모바일 네트워크에서 최초 CDN 요청이 실패해도 미리 한 번 복구를 시도합니다.
+    if (!window.Kakao) {
+      loadKakaoSdk().catch((error) => console.warn('Kakao SDK preload failed:', error));
+    }
+
+    button.addEventListener('click', async () => {
       if (!share.javascriptKey) {
         showToast('카카오 JavaScript 키 설정이 필요합니다');
         return;
       }
 
-      if (!window.Kakao || !window.Kakao.Share) {
-        showToast('카카오톡 공유 기능을 불러오지 못했습니다');
-        return;
-      }
-
       try {
-        if (!window.Kakao.isInitialized()) {
-          window.Kakao.init(share.javascriptKey);
+        const kakao = await loadKakaoSdk();
+        if (!kakao.isInitialized()) {
+          kakao.init(share.javascriptKey);
+        }
+        if (!kakao.Share) {
+          throw new Error('Kakao Share module is unavailable');
         }
 
-        window.Kakao.Share.sendDefault({
+        kakao.Share.sendDefault({
           objectType: 'feed',
           content: {
             title: CONFIG.meta.title,
@@ -169,7 +207,7 @@
         });
       } catch (error) {
         console.error('Kakao share failed:', error);
-        showToast('카카오톡 공유를 시작하지 못했습니다');
+        showToast('공유 기능 연결에 실패했습니다. 잠시 후 다시 눌러주세요');
       }
     });
   }
