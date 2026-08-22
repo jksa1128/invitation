@@ -10,7 +10,9 @@
   <meta property="og:title" content="우종건 ♥ 이서아 결혼합니다">
   <meta property="og:description" content="26년 11월 28일">
   <meta property="og:image" content="https://jksa1128.github.io/my-wedding/images/og/1.jpg">
+  <meta property="og:url" content="https://jksa1128.github.io/my-wedding/">
   <meta name="description" content="">
+  <link rel="canonical" href="https://jksa1128.github.io/my-wedding/">
 
   <title>Wedding Invitation</title>
 
@@ -136,6 +138,8 @@
       <div class="section__inner">
         <h2 class="section__title animate-item" data-animate="fade-up">갤러리</h2>
         <div class="gallery__grid" id="galleryGrid"></div>
+        <button class="gallery__toggle btn btn--outline" id="galleryToggleBtn" type="button"
+          aria-controls="galleryGrid" aria-expanded="false" hidden>더보기</button>
       </div>
     </section>
 
@@ -195,6 +199,21 @@
       </div>
     </section>
 
+    <!-- ─── Kakao Share Section ─── -->
+    <section class="section share" id="share">
+      <div class="section__inner">
+        <p class="share__eyebrow animate-item" data-animate="fade-in">Share Our Invitation</p>
+        <h2 class="section__title animate-item" data-animate="fade-up">청첩장 공유하기</h2>
+        <p class="share__desc animate-item" data-animate="fade-up">소중한 분들께 저희의 소식을 전해 주세요.</p>
+        <button class="btn btn--kakao-share animate-item" data-animate="fade-up" id="kakaoShareBtn" type="button">
+          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor" d="M12 3C6.48 3 2 6.58 2 11c0 2.88 1.9 5.4 4.75 6.81l-.97 3.56c-.08.32.28.58.56.39l4.25-2.81c.46.04.93.05 1.41.05 5.52 0 10-3.58 10-8S17.52 3 12 3Z"/>
+          </svg>
+          카카오톡으로 공유하기
+        </button>
+      </div>
+    </section>
+
     <!-- ─── Footer ─── -->
     <footer class="footer">
       <p class="footer__text" id="footerText"></p>
@@ -202,6 +221,8 @@
 
   </main>
 
+  <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.8.2/kakao.min.js"
+    crossorigin="anonymous"></script>
   <script src="script.js"></script>
 </body>
 </html>

@@ -122,6 +122,59 @@
   }
 
   /* ═══════════════════════════════════════════
+     KakaoTalk Share
+     ═══════════════════════════════════════════ */
+
+  function initKakaoShare() {
+    const button = $('#kakaoShareBtn');
+    const share = CONFIG.kakaoShare || {};
+    if (!button) return;
+
+    button.addEventListener('click', () => {
+      if (!share.javascriptKey) {
+        showToast('카카오 JavaScript 키 설정이 필요합니다');
+        return;
+      }
+
+      if (!window.Kakao || !window.Kakao.Share) {
+        showToast('카카오톡 공유 기능을 불러오지 못했습니다');
+        return;
+      }
+
+      try {
+        if (!window.Kakao.isInitialized()) {
+          window.Kakao.init(share.javascriptKey);
+        }
+
+        window.Kakao.Share.sendDefault({
+          objectType: 'feed',
+          content: {
+            title: CONFIG.meta.title,
+            description: CONFIG.meta.description,
+            imageUrl: share.imageUrl,
+            link: {
+              mobileWebUrl: share.url,
+              webUrl: share.url
+            }
+          },
+          buttons: [
+            {
+              title: share.buttonTitle || '청첩장 보기',
+              link: {
+                mobileWebUrl: share.url,
+                webUrl: share.url
+              }
+            }
+          ]
+        });
+      } catch (error) {
+        console.error('Kakao share failed:', error);
+        showToast('카카오톡 공유를 시작하지 못했습니다');
+      }
+    });
+  }
+
+  /* ═══════════════════════════════════════════
      Curtain
      ═══════════════════════════════════════════ */
 
@@ -440,6 +493,8 @@
 
   function initGallery(galleryImages) {
     const grid = $('#galleryGrid');
+    const toggleButton = $('#galleryToggleBtn');
+    const initialVisibleCount = 9;
     // Remove loading placeholder if present
     const placeholder = grid.querySelector('.loading-placeholder');
     if (placeholder) placeholder.remove();
@@ -454,11 +509,34 @@
     galleryImages.forEach((src, i) => {
       const div = document.createElement('div');
       div.className = 'gallery__item animate-item';
+      if (i >= initialVisibleCount) div.classList.add('is-collapsed');
       div.setAttribute('data-animate', 'scale-in');
       div.innerHTML = `<img src="${src}" alt="갤러리 사진 ${i + 1}" loading="lazy">`;
       div.addEventListener('click', () => openPhotoModal(galleryImages, i));
       grid.appendChild(div);
     });
+
+    if (galleryImages.length > initialVisibleCount) {
+      const hiddenCount = galleryImages.length - initialVisibleCount;
+      toggleButton.hidden = false;
+      toggleButton.textContent = `더보기 (${hiddenCount})`;
+
+      toggleButton.addEventListener('click', () => {
+        const isExpanded = toggleButton.getAttribute('aria-expanded') === 'true';
+        $$('.gallery__item', grid).forEach((item, index) => {
+          if (index >= initialVisibleCount) {
+            item.classList.toggle('is-collapsed', isExpanded);
+          }
+        });
+
+        toggleButton.setAttribute('aria-expanded', String(!isExpanded));
+        toggleButton.textContent = isExpanded ? `더보기 (${hiddenCount})` : '접기';
+
+        if (isExpanded) {
+          $('#gallery').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    }
   }
 
   /* ═══════════════════════════════════════════
@@ -713,6 +791,7 @@
     initPhotoModal();
     initLocation();
     initAccounts();
+    initKakaoShare();
     initFooter();
     initScrollAnimations();
 

@@ -81,5 +81,16 @@ const CONFIG = {
   meta: {
     title: "우종건 ♥ 이서아 결혼합니다",
     description: "2026년 11월 28일, 소중한 분들을 초대합니다."
+  },
+
+  // ── 카카오톡 공유 ──
+  // Kakao Developers에서 JavaScript 키를 발급받아 입력하세요.
+  // 제품 링크 관리의 웹 도메인과 JavaScript SDK 도메인에
+  // https://jksa1128.github.io 를 등록해야 합니다.
+  kakaoShare: {
+    javascriptKey: "",
+    url: "https://jksa1128.github.io/my-wedding/",
+    imageUrl: "https://jksa1128.github.io/my-wedding/images/og/1.jpg",
+    buttonTitle: "청첩장 보기"
   }
 };
