@@ -88,7 +88,7 @@ const CONFIG = {
   // 제품 링크 관리의 웹 도메인과 JavaScript SDK 도메인에
   // https://jksa1128.github.io 를 등록해야 합니다.
   kakaoShare: {
-    javascriptKey: "",
+    javascriptKey: "64b5b7c4b6ac70b68b87b8480200615f",
     url: "https://jksa1128.github.io/invitation/",
     imageUrl: "https://jksa1128.github.io/invitation/images/og/1.jpg",
     buttonTitle: "청첩장 보기"
