@@ -12,7 +12,7 @@
 
   const $ = (sel, ctx = document) => ctx.querySelector(sel);
   const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
-  const ASSET_VERSION = '20260823-3';
+  const ASSET_VERSION = '20260823-4';
   const INITIAL_GALLERY_VISIBLE_COUNT = 9;
   const STORY_PLACEHOLDER_COUNT = 2;
 
@@ -413,6 +413,14 @@
     $('#heroNames').textContent = `${CONFIG.groom.name}  ·  ${CONFIG.bride.name}`;
     $('#heroDate').textContent = formatDate(CONFIG.wedding.date, CONFIG.wedding.time);
     $('#heroVenue').textContent = CONFIG.wedding.venue;
+
+    // Browser chrome resize events must not alter the hero while scrolling.
+    // Recalculate only when the physical device orientation changes.
+    window.addEventListener('orientationchange', () => {
+      setTimeout(() => {
+        document.documentElement.style.setProperty('--hero-height', `${window.innerHeight}px`);
+      }, 300);
+    });
   }
 
   /* ═══════════════════════════════════════════
