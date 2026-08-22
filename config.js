@@ -89,8 +89,8 @@ const CONFIG = {
   // https://jksa1128.github.io 를 등록해야 합니다.
   kakaoShare: {
     javascriptKey: "",
-    url: "https://jksa1128.github.io/my-wedding/",
-    imageUrl: "https://jksa1128.github.io/my-wedding/images/og/1.jpg",
+    url: "https://jksa1128.github.io/invitation/",
+    imageUrl: "https://jksa1128.github.io/invitation/images/og/1.jpg",
     buttonTitle: "청첩장 보기"
   }
 };
