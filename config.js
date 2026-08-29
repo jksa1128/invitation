@@ -44,9 +44,32 @@ const CONFIG = {
     tel: "02-421-1121",
     mapLinks: {
       kakao: "https://kko.to/Cn_X0Kf0aQ",
-      naver: "https://naver.me/F05mqaoE"
-    }
+      naver: "https://naver.me/F05mqaoE",
+      tmap: "https://apis.openapi.sk.com/tmap/app/routes?name=%EB%8D%94%EC%B1%84%ED%94%8C%20%EC%95%B3%20%EC%B2%AD%EB%8B%B4&lon=127.039149&lat=37.522474"
+    },
+    transportation: [
+      {
+        title: "셔틀버스",
+        description: "강남구청역 3번 출구에서 셔틀버스가 운행됩니다."
+      },
+      {
+        title: "주차 안내",
+        description: "본관 및 안내받은 외부 주차장을 이용해 주세요.\n하객 차량은 90분 무료 주차가 가능합니다."
+      }
+    ]
   },
+
+  // ── 예식 안내 카드 ──
+  information: [
+    {
+      title: "교통 안내",
+      description: "주차 공간이 협소하오니, 가급적 대중교통을 이용해 주시기 바랍니다."
+    },
+    {
+      title: "화환 안내",
+      description: "환경 보호에 동참하기 위하여, 축하 화환과 화분 및 꽃바구니는 정중히 사양합니다."
+    }
+  ],
 
   // ── 인사말 ──
   greeting: {
@@ -81,6 +104,14 @@ const CONFIG = {
   meta: {
     title: "우종건 ♥ 이서아 결혼합니다",
     description: "2026년 11월 28일, 소중한 분들을 초대합니다."
+  },
+
+  // ── 축하 전하기 ──
+  // Google Apps Script를 웹 앱으로 배포한 뒤 /exec 주소를 입력하세요.
+  // 스프레드시트 ID나 Google 인증정보는 이 파일에 넣지 않습니다.
+  guestbook: {
+    apiUrl: "https://script.google.com/macros/s/AKfycbzxmdkmlxDn6WivHLvmzx1LujpYcNblv1lQNrzUrpZJF4IkCtWRsoZGibE3QGqx-CB6/exec",
+    pageSize: 20
   },
 
   // ── 카카오톡 공유 ──

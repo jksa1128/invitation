@@ -409,10 +409,22 @@
      ═══════════════════════════════════════════ */
 
   function initHero() {
+    const openingMode = new URLSearchParams(window.location.search).get('opening');
+    const isHorizontalOpening = openingMode === 'horizontal' || openingMode === 'eternal';
+    if (isHorizontalOpening) {
+      $('#hero').classList.add('opening-horizontal');
+    }
+
     $('#heroPhoto').src = 'images/hero/1.jpg';
     $('#heroNames').textContent = `${CONFIG.groom.name}  ·  ${CONFIG.bride.name}`;
     $('#heroDate').textContent = formatDate(CONFIG.wedding.date, CONFIG.wedding.time);
     $('#heroVenue').textContent = CONFIG.wedding.venue;
+    $('#openingNames').textContent = isHorizontalOpening
+      ? 'JONG KUN\nSEO AH'
+      : `${CONFIG.groom.name}  ·  ${CONFIG.bride.name}`;
+    $('#openingDate').textContent = formatDate(CONFIG.wedding.date, CONFIG.wedding.time);
+
+    initHeroOpening();
 
     // Browser chrome resize events must not alter the hero while scrolling.
     // Recalculate only when the physical device orientation changes.
@@ -422,6 +434,31 @@
       }, 300);
     });
 
+  }
+
+  function initHeroOpening() {
+    const hero = $('#hero');
+    if (!hero || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    let ticking = false;
+
+    const updateOpening = () => {
+      const travel = Math.max(1, hero.offsetHeight - window.innerHeight);
+      const progress = Math.min(1, Math.max(0, -hero.getBoundingClientRect().top / travel));
+      hero.style.setProperty('--opening-progress', progress.toFixed(4));
+      hero.classList.toggle('is-open', progress > 0.96);
+      ticking = false;
+    };
+
+    const requestUpdate = () => {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(updateOpening);
+    };
+
+    window.addEventListener('scroll', requestUpdate, { passive: true });
+    window.addEventListener('resize', requestUpdate, { passive: true });
+    updateOpening();
   }
 
   /* ═══════════════════════════════════════════
@@ -776,10 +813,146 @@
     });
     $('#kakaoMapBtn').href = w.mapLinks.kakao || '#';
     $('#naverMapBtn').href = w.mapLinks.naver || '#';
+    $('#tmapBtn').href = w.mapLinks.tmap || '#';
+
+    const information = $('#locationInformation');
+    information.innerHTML = '';
+    (w.transportation || []).forEach((item) => {
+      const row = document.createElement('div');
+      row.className = 'location-information__row';
+
+      const title = document.createElement('p');
+      title.className = 'location-information__title';
+      title.textContent = item.title || '';
+
+      const description = document.createElement('p');
+      description.className = 'location-information__description';
+      description.textContent = item.description || '';
+
+      row.append(title, description);
+      information.appendChild(row);
+    });
+    information.hidden = !information.children.length;
 
     $('#copyAddressBtn').addEventListener('click', () => {
       copyToClipboard(w.address, '주소가 복사되었습니다');
     });
+  }
+
+  /* ═══════════════════════════════════════════
+     Information Section
+     ═══════════════════════════════════════════ */
+
+  function initInformation() {
+    const section = $('#information');
+    const carousel = $('#infoCarousel');
+    const track = $('#infoCarouselTrack');
+    const dots = $('#infoCarouselDots');
+    const items = CONFIG.information || [];
+
+    if (!items.length) {
+      section.hidden = true;
+      return;
+    }
+
+    let activeIndex = 0;
+    let touchStartX = 0;
+    let autoTimer = null;
+    let isPaused = false;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const showSlide = (index) => {
+      activeIndex = (index + items.length) % items.length;
+      track.style.transform = `translateX(-${activeIndex * 100}%)`;
+
+      track.querySelectorAll('.info-card').forEach((card, cardIndex) => {
+        card.setAttribute('aria-hidden', cardIndex !== activeIndex);
+      });
+      dots.querySelectorAll('.info-carousel__dot').forEach((dot, dotIndex) => {
+        const selected = dotIndex === activeIndex;
+        dot.classList.toggle('is-active', selected);
+        dot.setAttribute('aria-current', selected ? 'true' : 'false');
+      });
+    };
+
+    const stopAutoScroll = () => {
+      if (!autoTimer) return;
+      clearInterval(autoTimer);
+      autoTimer = null;
+    };
+
+    const startAutoScroll = () => {
+      stopAutoScroll();
+      if (items.length < 2 || reduceMotion || isPaused || document.hidden) return;
+      autoTimer = setInterval(() => showSlide(activeIndex + 1), 4500);
+    };
+
+    const restartAutoScroll = () => {
+      stopAutoScroll();
+      startAutoScroll();
+    };
+
+    items.forEach((item, index) => {
+      const card = document.createElement('article');
+      card.className = 'info-card';
+      card.setAttribute('aria-roledescription', 'slide');
+      card.setAttribute('aria-label', `${index + 1} / ${items.length}`);
+
+      const title = document.createElement('h3');
+      title.className = 'info-card__title';
+      title.textContent = item.title || '';
+
+      const description = document.createElement('p');
+      description.className = 'info-card__description';
+      description.textContent = item.description || '';
+
+      card.append(title, description);
+      track.appendChild(card);
+
+      const dot = document.createElement('button');
+      dot.className = 'info-carousel__dot';
+      dot.type = 'button';
+      dot.setAttribute('aria-label', `정보 ${index + 1} 보기`);
+      dot.addEventListener('click', () => {
+        showSlide(index);
+        restartAutoScroll();
+      });
+      dots.appendChild(dot);
+    });
+
+    carousel.addEventListener('touchstart', (event) => {
+      touchStartX = event.changedTouches[0].clientX;
+      stopAutoScroll();
+    }, { passive: true });
+
+    carousel.addEventListener('touchend', (event) => {
+      const distance = touchStartX - event.changedTouches[0].clientX;
+      if (Math.abs(distance) >= 40) {
+        showSlide(activeIndex + (distance > 0 ? 1 : -1));
+      }
+      restartAutoScroll();
+    }, { passive: true });
+
+    carousel.addEventListener('focusin', () => {
+      isPaused = true;
+      stopAutoScroll();
+    });
+
+    carousel.addEventListener('focusout', () => {
+      requestAnimationFrame(() => {
+        if (carousel.contains(document.activeElement)) return;
+        isPaused = false;
+        startAutoScroll();
+      });
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stopAutoScroll();
+      else startAutoScroll();
+    });
+
+    showSlide(0);
+    startAutoScroll();
   }
 
   /* ═══════════════════════════════════════════
@@ -871,6 +1044,228 @@
   }
 
   /* ═══════════════════════════════════════════
+     Guestbook
+     ═══════════════════════════════════════════ */
+
+  const guestbookState = {
+    messages: [],
+    nextCursor: '',
+    deleteId: '',
+    loading: false
+  };
+
+  function guestbookClientId() {
+    const key = 'wedding_guestbook_client_id';
+    let value = localStorage.getItem(key);
+    if (!value) {
+      value = (crypto.randomUUID && crypto.randomUUID()) || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      localStorage.setItem(key, value);
+    }
+    return value;
+  }
+
+  function guestbookApiUrl(params = {}) {
+    const url = new URL(CONFIG.guestbook.apiUrl);
+    Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
+    return url.toString();
+  }
+
+  async function guestbookRequest(action, payload) {
+    if (!CONFIG.guestbook || !CONFIG.guestbook.apiUrl) {
+      throw new Error('축하글 기능을 준비 중입니다.');
+    }
+
+    const options = { cache: 'no-store', redirect: 'follow' };
+    let url;
+    if (payload === undefined) {
+      url = guestbookApiUrl({ action, t: Date.now() });
+    } else {
+      url = CONFIG.guestbook.apiUrl;
+      options.method = 'POST';
+      options.headers = { 'Content-Type': 'text/plain;charset=utf-8' };
+      options.body = JSON.stringify({ action, clientId: guestbookClientId(), ...payload });
+    }
+
+    const response = await fetch(url, options);
+    const result = await response.json();
+    if (!result.ok) throw new Error(result.error || '요청을 처리하지 못했습니다.');
+    return result;
+  }
+
+  function formatGuestbookDate(value) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return `${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
+  }
+
+  function renderGuestbookMessages(append = false) {
+    const list = $('#guestbookList');
+    if (!append) list.replaceChildren();
+
+    guestbookState.messages.forEach((message) => {
+      if (list.querySelector(`[data-message-id="${CSS.escape(message.id)}"]`)) return;
+      const card = document.createElement('article');
+      card.className = 'guestbook-card';
+      card.dataset.messageId = message.id;
+
+      const header = document.createElement('div');
+      header.className = 'guestbook-card__header';
+      const name = document.createElement('strong');
+      name.className = 'guestbook-card__name';
+      name.textContent = message.name;
+      const date = document.createElement('time');
+      date.className = 'guestbook-card__date';
+      date.dateTime = message.createdAt;
+      date.textContent = formatGuestbookDate(message.createdAt);
+      const deleteButton = document.createElement('button');
+      deleteButton.className = 'guestbook-card__delete';
+      deleteButton.type = 'button';
+      deleteButton.textContent = '삭제';
+      deleteButton.dataset.deleteMessage = message.id;
+      header.append(name, date, deleteButton);
+
+      const body = document.createElement('p');
+      body.className = 'guestbook-card__message';
+      body.textContent = message.message;
+      card.append(header, body);
+      list.appendChild(card);
+    });
+  }
+
+  async function loadGuestbook(reset = true) {
+    if (guestbookState.loading) return;
+    guestbookState.loading = true;
+    const status = $('#guestbookStatus');
+    status.hidden = false;
+    status.textContent = reset ? '축하글을 불러오는 중입니다.' : '이전 축하글을 불러오는 중입니다.';
+
+    try {
+      const params = {
+        action: 'bootstrap',
+        limit: String(CONFIG.guestbook.pageSize || 20),
+        clientId: guestbookClientId(),
+        t: Date.now()
+      };
+      if (!reset && guestbookState.nextCursor) params.cursor = guestbookState.nextCursor;
+      const response = await fetch(guestbookApiUrl(params), { cache: 'no-store', redirect: 'follow' });
+      const result = await response.json();
+      if (!result.ok) throw new Error(result.error || '축하글을 불러오지 못했습니다.');
+
+      guestbookState.messages = reset ? result.messages : guestbookState.messages.concat(result.messages);
+      guestbookState.nextCursor = result.nextCursor || '';
+      renderGuestbookMessages(!reset);
+      status.hidden = guestbookState.messages.length > 0;
+      status.textContent = '아직 등록된 축하글이 없습니다. 첫 축하를 남겨주세요.';
+      $('#guestbookMoreBtn').hidden = !guestbookState.nextCursor;
+      $('#guestbookHeartCount').textContent = String(result.heartCount || 0);
+      $('#guestbookHeartBtn').setAttribute('aria-pressed', result.liked ? 'true' : 'false');
+    } catch (error) {
+      status.hidden = false;
+      status.textContent = error.message;
+    } finally {
+      guestbookState.loading = false;
+    }
+  }
+
+  function setGuestbookSubmitting(button, submitting, idleText) {
+    button.disabled = submitting;
+    button.textContent = submitting ? '처리 중…' : idleText;
+  }
+
+  function initGuestbook() {
+    const enabled = Boolean(CONFIG.guestbook && CONFIG.guestbook.apiUrl);
+    const writeButton = $('#guestbookWriteBtn');
+    const heartButton = $('#guestbookHeartBtn');
+    writeButton.disabled = !enabled;
+    heartButton.disabled = !enabled;
+
+    if (!enabled) {
+      $('#guestbookStatus').textContent = '축하글 기능을 준비 중입니다.';
+      return;
+    }
+
+    const dialog = $('#guestbookDialog');
+    const deleteDialog = $('#guestbookDeleteDialog');
+    writeButton.addEventListener('click', () => dialog.showModal());
+    $('#guestbookDialogClose').addEventListener('click', () => dialog.close());
+    $('#guestbookDeleteClose').addEventListener('click', () => deleteDialog.close());
+    $('#guestbookMoreBtn').addEventListener('click', () => loadGuestbook(false));
+
+    $('#guestbookForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const submit = $('#guestbookSubmitBtn');
+      const error = $('#guestbookFormError');
+      error.textContent = '';
+      setGuestbookSubmitting(submit, true, '등록');
+      try {
+        await guestbookRequest('createMessage', {
+          name: $('#guestbookName').value,
+          password: $('#guestbookPassword').value,
+          message: $('#guestbookMessage').value
+        });
+        event.target.reset();
+        dialog.close();
+        showToast('축하글이 등록되었습니다');
+        await loadGuestbook(true);
+      } catch (requestError) {
+        error.textContent = requestError.message;
+      } finally {
+        setGuestbookSubmitting(submit, false, '등록');
+      }
+    });
+
+    $('#guestbookList').addEventListener('click', (event) => {
+      const button = event.target.closest('[data-delete-message]');
+      if (!button) return;
+      guestbookState.deleteId = button.dataset.deleteMessage;
+      $('#guestbookDeletePassword').value = '';
+      $('#guestbookDeleteError').textContent = '';
+      deleteDialog.showModal();
+    });
+
+    $('#guestbookDeleteForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const submit = $('#guestbookDeleteSubmitBtn');
+      const error = $('#guestbookDeleteError');
+      error.textContent = '';
+      setGuestbookSubmitting(submit, true, '삭제');
+      try {
+        await guestbookRequest('deleteMessage', {
+          id: guestbookState.deleteId,
+          password: $('#guestbookDeletePassword').value
+        });
+        deleteDialog.close();
+        showToast('축하글이 삭제되었습니다');
+        await loadGuestbook(true);
+      } catch (requestError) {
+        error.textContent = requestError.message;
+      } finally {
+        setGuestbookSubmitting(submit, false, '삭제');
+      }
+    });
+
+    heartButton.addEventListener('click', async () => {
+      if (heartButton.getAttribute('aria-pressed') === 'true') {
+        showToast('이미 하트를 보내주셨어요');
+        return;
+      }
+      heartButton.disabled = true;
+      try {
+        const result = await guestbookRequest('like', {});
+        heartButton.setAttribute('aria-pressed', 'true');
+        $('#guestbookHeartCount').textContent = String(result.heartCount);
+        showToast('축하해 주셔서 감사합니다');
+      } catch (error) {
+        showToast(error.message);
+      } finally {
+        heartButton.disabled = false;
+      }
+    });
+
+    loadGuestbook(true);
+  }
+
+  /* ═══════════════════════════════════════════
      Scroll Animations (IntersectionObserver)
      ═══════════════════════════════════════════ */
 
@@ -930,7 +1325,9 @@
     // Init sections that don't depend on image detection
     initPhotoModal();
     initLocation();
+    initInformation();
     initAccounts();
+    initGuestbook();
     initKakaoShare();
     initFooter();
     initScrollAnimations();
