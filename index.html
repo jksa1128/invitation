@@ -25,7 +25,7 @@
     // Lock the opening viewport height before the hero is first rendered.
     document.documentElement.style.setProperty('--hero-height', window.innerHeight + 'px');
   </script>
-  <link rel="stylesheet" href="styles.css?v=20260829-14">
+  <link rel="stylesheet" href="styles.css?v=20260829-17">
   <script src="config.js?v=20260829-9"></script>
 </head>
 <body>
@@ -307,7 +307,7 @@
   </main>
 
   <dialog class="guestbook-dialog" id="guestbookDialog" aria-labelledby="guestbookDialogTitle">
-    <form class="guestbook-form" id="guestbookForm" method="dialog">
+    <form class="guestbook-form" id="guestbookForm" method="dialog" novalidate>
       <div class="guestbook-form__header">
         <h2 id="guestbookDialogTitle">축하의 한 마디</h2>
         <button class="guestbook-form__close" id="guestbookDialogClose" type="button" aria-label="닫기">×</button>
@@ -331,7 +331,7 @@
   </dialog>
 
   <dialog class="guestbook-dialog guestbook-dialog--small" id="guestbookDeleteDialog" aria-labelledby="guestbookDeleteTitle">
-    <form class="guestbook-form" id="guestbookDeleteForm" method="dialog">
+    <form class="guestbook-form" id="guestbookDeleteForm" method="dialog" novalidate>
       <div class="guestbook-form__header">
         <h2 id="guestbookDeleteTitle">축하글 삭제</h2>
         <button class="guestbook-form__close" id="guestbookDeleteClose" type="button" aria-label="닫기">×</button>
@@ -348,6 +348,6 @@
 
   <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.8.2/kakao.min.js"
     crossorigin="anonymous"></script>
-  <script src="script.js?v=20260829-14"></script>
+  <script src="script.js?v=20260829-17"></script>
 </body>
 </html>

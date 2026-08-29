@@ -1623,9 +1623,11 @@ a {
 .guestbook-card__message {
   display: -webkit-box;
   width: 100%;
+  max-height: calc(1.7em * 5);
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 5;
+  line-clamp: 5;
   color: var(--color-text-light);
   font-size: 0.8125rem;
   line-height: 1.7;
@@ -1645,8 +1647,10 @@ a {
 
 .guestbook-card__message[aria-expanded="true"] {
   display: block;
+  max-height: none;
   overflow: visible;
   -webkit-line-clamp: unset;
+  line-clamp: unset;
 }
 
 .guestbook__more {

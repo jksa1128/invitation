@@ -1120,24 +1120,14 @@
       header.append(name, date, deleteButton);
 
       const body = document.createElement('button');
-      body.className = 'guestbook-card__message';
+      body.className = 'guestbook-card__message is-expandable';
       body.type = 'button';
       body.dataset.expandMessage = message.id;
       body.setAttribute('aria-expanded', 'false');
+      body.setAttribute('aria-label', `${message.message} 전체 내용 펼쳐보기`);
       body.textContent = message.message;
       card.append(header, body);
       list.appendChild(card);
-
-      requestAnimationFrame(() => {
-        const expandable = body.scrollHeight > body.clientHeight + 1;
-        body.classList.toggle('is-expandable', expandable);
-        if (expandable) {
-          body.setAttribute('aria-label', `${message.message} 전체 내용 펼쳐보기`);
-        } else {
-          body.removeAttribute('aria-expanded');
-          body.removeAttribute('data-expand-message');
-        }
-      });
     });
   }
 
@@ -1213,12 +1203,35 @@
       const submit = $('#guestbookSubmitBtn');
       const error = $('#guestbookFormError');
       error.textContent = '';
+      const nameInput = $('#guestbookName');
+      const passwordInput = $('#guestbookPassword');
+      const messageInput = $('#guestbookMessage');
+      if (!nameInput.value.trim()) {
+        error.textContent = '이름을 입력해 주세요.';
+        nameInput.focus();
+        return;
+      }
+      if (!passwordInput.value) {
+        error.textContent = '비밀번호를 입력해 주세요.';
+        passwordInput.focus();
+        return;
+      }
+      if (!/^\d{4}$/.test(passwordInput.value)) {
+        error.textContent = '비밀번호는 4자리 숫자로 입력해 주세요.';
+        passwordInput.focus();
+        return;
+      }
+      if (!messageInput.value.trim()) {
+        error.textContent = '축하글을 입력해 주세요.';
+        messageInput.focus();
+        return;
+      }
       setGuestbookSubmitting(submit, true, '등록');
       try {
         await guestbookRequest('createMessage', {
-          name: $('#guestbookName').value,
-          password: $('#guestbookPassword').value,
-          message: $('#guestbookMessage').value
+          name: nameInput.value,
+          password: passwordInput.value,
+          message: messageInput.value
         });
         event.target.reset();
         closeGuestbookDialog(dialog);
@@ -1255,11 +1268,22 @@
       const submit = $('#guestbookDeleteSubmitBtn');
       const error = $('#guestbookDeleteError');
       error.textContent = '';
+      const passwordInput = $('#guestbookDeletePassword');
+      if (!passwordInput.value) {
+        error.textContent = '비밀번호를 입력해 주세요.';
+        passwordInput.focus();
+        return;
+      }
+      if (!/^\d{4}$/.test(passwordInput.value)) {
+        error.textContent = '비밀번호는 4자리 숫자로 입력해 주세요.';
+        passwordInput.focus();
+        return;
+      }
       setGuestbookSubmitting(submit, true, '삭제');
       try {
         await guestbookRequest('deleteMessage', {
           id: guestbookState.deleteId,
-          password: $('#guestbookDeletePassword').value
+          password: passwordInput.value
         });
         closeGuestbookDialog(deleteDialog);
         showToast('축하글이 삭제되었습니다');
