@@ -111,7 +111,7 @@ const CONFIG = {
   // 스프레드시트 ID나 Google 인증정보는 이 파일에 넣지 않습니다.
   guestbook: {
     apiUrl: "https://script.google.com/macros/s/AKfycbzxmdkmlxDn6WivHLvmzx1LujpYcNblv1lQNrzUrpZJF4IkCtWRsoZGibE3QGqx-CB6/exec",
-    pageSize: 20
+    pageSize: 5
   },
 
   // ── 카카오톡 공유 ──

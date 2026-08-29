@@ -1044,6 +1044,7 @@
   const guestbookState = {
     messages: [],
     nextCursor: '',
+    remainingCount: 0,
     deleteId: '',
     loading: false
   };
@@ -1118,11 +1119,25 @@
       deleteButton.dataset.deleteMessage = message.id;
       header.append(name, date, deleteButton);
 
-      const body = document.createElement('p');
+      const body = document.createElement('button');
       body.className = 'guestbook-card__message';
+      body.type = 'button';
+      body.dataset.expandMessage = message.id;
+      body.setAttribute('aria-expanded', 'false');
       body.textContent = message.message;
       card.append(header, body);
       list.appendChild(card);
+
+      requestAnimationFrame(() => {
+        const expandable = body.scrollHeight > body.clientHeight + 1;
+        body.classList.toggle('is-expandable', expandable);
+        if (expandable) {
+          body.setAttribute('aria-label', `${message.message} 전체 내용 펼쳐보기`);
+        } else {
+          body.removeAttribute('aria-expanded');
+          body.removeAttribute('data-expand-message');
+        }
+      });
     });
   }
 
@@ -1147,10 +1162,13 @@
 
       guestbookState.messages = reset ? result.messages : guestbookState.messages.concat(result.messages);
       guestbookState.nextCursor = result.nextCursor || '';
+      guestbookState.remainingCount = Number(result.remainingCount || 0);
       renderGuestbookMessages(!reset);
       status.hidden = guestbookState.messages.length > 0;
       status.textContent = '아직 등록된 축하글이 없습니다. 첫 축하를 남겨주세요.';
-      $('#guestbookMoreBtn').hidden = !guestbookState.nextCursor;
+      const moreButton = $('#guestbookMoreBtn');
+      moreButton.hidden = !guestbookState.nextCursor;
+      moreButton.textContent = `이전 축하글 더보기 (${guestbookState.remainingCount})`;
       $('#guestbookHeartCount').textContent = String(result.heartCount || 0);
       $('#guestbookHeartBtn').setAttribute('aria-pressed', result.liked ? 'true' : 'false');
     } catch (error) {
@@ -1164,6 +1182,11 @@
   function setGuestbookSubmitting(button, submitting, idleText) {
     button.disabled = submitting;
     button.textContent = submitting ? '처리 중…' : idleText;
+  }
+
+  function closeGuestbookDialog(dialog) {
+    if (dialog.contains(document.activeElement)) document.activeElement.blur();
+    dialog.close();
   }
 
   function initGuestbook() {
@@ -1181,8 +1204,8 @@
     const dialog = $('#guestbookDialog');
     const deleteDialog = $('#guestbookDeleteDialog');
     writeButton.addEventListener('click', () => dialog.showModal());
-    $('#guestbookDialogClose').addEventListener('click', () => dialog.close());
-    $('#guestbookDeleteClose').addEventListener('click', () => deleteDialog.close());
+    $('#guestbookDialogClose').addEventListener('click', () => closeGuestbookDialog(dialog));
+    $('#guestbookDeleteClose').addEventListener('click', () => closeGuestbookDialog(deleteDialog));
     $('#guestbookMoreBtn').addEventListener('click', () => loadGuestbook(false));
 
     $('#guestbookForm').addEventListener('submit', async (event) => {
@@ -1198,7 +1221,7 @@
           message: $('#guestbookMessage').value
         });
         event.target.reset();
-        dialog.close();
+        closeGuestbookDialog(dialog);
         showToast('축하글이 등록되었습니다');
         await loadGuestbook(true);
       } catch (requestError) {
@@ -1209,6 +1232,16 @@
     });
 
     $('#guestbookList').addEventListener('click', (event) => {
+      const messageButton = event.target.closest('[data-expand-message]');
+      if (messageButton) {
+        const expanded = messageButton.getAttribute('aria-expanded') === 'true';
+        messageButton.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+        messageButton.setAttribute('aria-label', expanded
+          ? `${messageButton.textContent} 전체 내용 펼쳐보기`
+          : `${messageButton.textContent} 내용 접기`);
+        return;
+      }
+
       const button = event.target.closest('[data-delete-message]');
       if (!button) return;
       guestbookState.deleteId = button.dataset.deleteMessage;
@@ -1228,7 +1261,7 @@
           id: guestbookState.deleteId,
           password: $('#guestbookDeletePassword').value
         });
-        deleteDialog.close();
+        closeGuestbookDialog(deleteDialog);
         showToast('축하글이 삭제되었습니다');
         await loadGuestbook(true);
       } catch (requestError) {

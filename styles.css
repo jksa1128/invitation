@@ -1594,6 +1594,7 @@ a {
   border-radius: var(--radius-md);
   background: var(--color-bg-card);
   box-shadow: 0 4px 18px rgba(58, 50, 40, 0.04);
+  text-align: left;
 }
 
 .guestbook-card__header {
@@ -1620,11 +1621,32 @@ a {
 }
 
 .guestbook-card__message {
+  display: -webkit-box;
+  width: 100%;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
   color: var(--color-text-light);
-  font-size: 0.9rem;
+  font-size: 0.8125rem;
   line-height: 1.7;
+  text-align: left;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.guestbook-card__message.is-expandable {
+  cursor: pointer;
+}
+
+.guestbook-card__message.is-expandable:focus-visible {
+  outline: 2px solid var(--color-accent-light);
+  outline-offset: 3px;
+}
+
+.guestbook-card__message[aria-expanded="true"] {
+  display: block;
+  overflow: visible;
+  -webkit-line-clamp: unset;
 }
 
 .guestbook__more {
@@ -1749,7 +1771,7 @@ a {
   background: #fff;
   color: var(--color-text);
   font: inherit;
-  font-size: 0.9rem;
+  font-size: 16px;
   resize: vertical;
 }
 
