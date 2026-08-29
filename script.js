@@ -419,15 +419,6 @@
     $('#openingDate').textContent = formatDate(CONFIG.wedding.date, CONFIG.wedding.time);
 
     initHeroOpening();
-
-    // Browser chrome resize events must not alter the hero while scrolling.
-    // Recalculate only when the physical device orientation changes.
-    window.addEventListener('orientationchange', () => {
-      setTimeout(() => {
-        document.documentElement.style.setProperty('--hero-height', `${window.innerHeight}px`);
-      }, 300);
-    });
-
   }
 
   function initHeroOpening() {
@@ -440,7 +431,7 @@
       const travel = Math.max(1, hero.offsetHeight - window.innerHeight);
       const progress = Math.min(1, Math.max(0, -hero.getBoundingClientRect().top / travel));
       hero.style.setProperty('--opening-progress', progress.toFixed(4));
-      hero.classList.toggle('is-open', progress > 0.96);
+      hero.classList.toggle('is-open', progress >= 0.999);
       ticking = false;
     };
 
