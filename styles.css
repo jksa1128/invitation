@@ -552,13 +552,13 @@ a {
     translate(-50%, calc(-50% - (var(--opening-progress) * 14px)))
     scale(calc(1 - (var(--opening-progress) * 0.025)));
   opacity: calc(1 - min(1, var(--opening-progress) * 3.4));
-  color: #40372e;
+  color: #44352a;
   text-shadow: 0 1px 18px rgba(255, 255, 255, 0.82);
 }
 
 .hero.opening-horizontal .hero-opening__eyebrow,
 .hero.opening-horizontal .hero-opening__date {
-  color: #766554;
+  color: #44352a;
 }
 
 .hero.opening-horizontal .hero-opening__names {
