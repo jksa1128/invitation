@@ -409,19 +409,13 @@
      ═══════════════════════════════════════════ */
 
   function initHero() {
-    const openingMode = new URLSearchParams(window.location.search).get('opening');
-    const isHorizontalOpening = openingMode === 'horizontal' || openingMode === 'eternal';
-    if (isHorizontalOpening) {
-      $('#hero').classList.add('opening-horizontal');
-    }
+    $('#hero').classList.add('opening-horizontal');
 
     $('#heroPhoto').src = 'images/hero/1.jpg';
     $('#heroNames').textContent = `${CONFIG.groom.name}  ·  ${CONFIG.bride.name}`;
     $('#heroDate').textContent = formatDate(CONFIG.wedding.date, CONFIG.wedding.time);
     $('#heroVenue').textContent = CONFIG.wedding.venue;
-    $('#openingNames').textContent = isHorizontalOpening
-      ? 'JONG KUN\nSEO AH'
-      : `${CONFIG.groom.name}  ·  ${CONFIG.bride.name}`;
+    $('#openingNames').textContent = 'JONG KUN\nSEO AH';
     $('#openingDate').textContent = formatDate(CONFIG.wedding.date, CONFIG.wedding.time);
 
     initHeroOpening();
