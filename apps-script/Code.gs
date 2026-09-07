@@ -1,7 +1,8 @@
 const GUESTBOOK_MESSAGES_SHEET = '축하글';
 const GUESTBOOK_LIKES_SHEET = '좋아요';
-const GUESTBOOK_MESSAGE_HEADERS = ['id', 'createdAt', 'name', 'message', 'passwordHash', 'salt', 'deletedAt'];
+const GUESTBOOK_MESSAGE_HEADERS = ['id', 'createdAt', 'name', 'message', 'passwordHash', 'salt', 'deletedAt', 'clientHash'];
 const GUESTBOOK_LIKE_HEADERS = ['id', 'createdAt', 'clientHash'];
+const MAX_GUESTBOOK_MESSAGES_PER_CLIENT = 5;
 
 function setupWeddingGuestbook() {
   const properties = PropertiesService.getScriptProperties();
@@ -20,6 +21,19 @@ function setupWeddingGuestbook() {
   ensureSheet_(spreadsheet, GUESTBOOK_LIKES_SHEET, GUESTBOOK_LIKE_HEADERS);
   SpreadsheetApp.flush();
   return '축하글과 좋아요 시트 준비가 완료되었습니다.';
+}
+
+function resetWeddingGuestbookData() {
+  const spreadsheet = guestbookSpreadsheet_();
+  const messageSheet = ensureSheet_(spreadsheet, GUESTBOOK_MESSAGES_SHEET, GUESTBOOK_MESSAGE_HEADERS);
+  const likeSheet = ensureSheet_(spreadsheet, GUESTBOOK_LIKES_SHEET, GUESTBOOK_LIKE_HEADERS);
+
+  [messageSheet, likeSheet].forEach(sheet => {
+    const dataRowCount = sheet.getLastRow() - 1;
+    if (dataRowCount > 0) sheet.getRange(2, 1, dataRowCount, sheet.getLastColumn()).clearContent();
+  });
+  SpreadsheetApp.flush();
+  return '축하글과 좋아요 데이터가 초기화되었습니다.';
 }
 
 function doGet(e) {
@@ -102,6 +116,13 @@ function createMessage_(data) {
   lock.waitLock(10000);
   try {
     const sheet = ensureSheet_(guestbookSpreadsheet_(), GUESTBOOK_MESSAGES_SHEET, GUESTBOOK_MESSAGE_HEADERS);
+    const rows = sheet.getLastRow() < 2
+      ? []
+      : sheet.getRange(2, 1, sheet.getLastRow() - 1, GUESTBOOK_MESSAGE_HEADERS.length).getValues();
+    const messageCount = rows.filter(row => row[0] && !row[6] && String(row[7]) === clientHash).length;
+    if (messageCount >= MAX_GUESTBOOK_MESSAGES_PER_CLIENT) {
+      throw new Error('최대 5개의 축하글만 작성할 수 있습니다.');
+    }
     const salt = Utilities.getUuid();
     sheet.appendRow([
       Utilities.getUuid(),
@@ -110,7 +131,8 @@ function createMessage_(data) {
       message,
       hashPassword_(password, salt),
       salt,
-      ''
+      '',
+      clientHash
     ]);
     cache.put(`message:${clientHash}`, '1', 10);
     return { ok: true };
@@ -182,6 +204,11 @@ function ensureSheet_(spreadsheet, name, headers) {
     sheet.setFrozenRows(1);
     sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#f5f0ea');
     sheet.autoResizeColumns(1, headers.length);
+  } else {
+    const currentHeaders = sheet.getRange(1, 1, 1, headers.length).getDisplayValues()[0];
+    if (headers.some((header, index) => currentHeaders[index] !== header)) {
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    }
   }
   return sheet;
 }
