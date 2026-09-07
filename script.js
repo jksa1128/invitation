@@ -13,7 +13,7 @@
   const $ = (sel, ctx = document) => ctx.querySelector(sel);
   const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
   const ASSET_VERSION = '20260823-8';
-  const INITIAL_GALLERY_VISIBLE_COUNT = 9;
+  const GALLERY_AUTOPLAY_MS = 3000;
   const STORY_PLACEHOLDER_COUNT = 2;
 
   function formatDate(dateStr, timeStr) {
@@ -631,49 +631,210 @@
      ═══════════════════════════════════════════ */
 
   function initGallery(galleryImages) {
-    const grid = $('#galleryGrid');
-    const toggleButton = $('#galleryToggleBtn');
-    const initialVisibleCount = INITIAL_GALLERY_VISIBLE_COUNT;
-    grid.querySelectorAll('.loading-photo-placeholder').forEach((item) => item.remove());
+    const viewer = $('#galleryViewer');
+    const mainViewport = $('#galleryMainViewport');
+    const mainTrack = $('#galleryMainTrack');
+    const thumbViewport = $('#galleryThumbViewport');
+    const thumbTrack = $('#galleryThumbTrack');
+    const status = $('#galleryStatus');
+
+    mainTrack.querySelectorAll('.loading-photo-placeholder').forEach((item) => item.remove());
 
     if (galleryImages.length === 0) {
-      // Hide gallery section if no images found
       const gallerySection = $('#gallery');
       if (gallerySection) gallerySection.style.display = 'none';
       return;
     }
 
-    galleryImages.forEach((src, i) => {
-      const div = document.createElement('div');
-      div.className = 'gallery__item animate-item';
-      if (i >= initialVisibleCount) div.classList.add('is-collapsed');
-      div.setAttribute('data-animate', 'scale-in');
-      div.innerHTML = `<img src="${src}" alt="갤러리 사진 ${i + 1}" loading="lazy">`;
-      div.addEventListener('click', () => openPhotoModal(galleryImages, i));
-      grid.appendChild(div);
-    });
+    let currentIndex = 0;
+    let autoplayTimer = null;
+    let mainScrollTimer = null;
+    let thumbWheelTimer = null;
+    let userInteracted = false;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    if (galleryImages.length > initialVisibleCount) {
-      const hiddenCount = galleryImages.length - initialVisibleCount;
-      toggleButton.hidden = false;
-      toggleButton.textContent = `더보기 (${hiddenCount})`;
+    const clampIndex = (index) => Math.max(0, Math.min(galleryImages.length - 1, index));
 
-      toggleButton.addEventListener('click', () => {
-        const isExpanded = toggleButton.getAttribute('aria-expanded') === 'true';
-        $$('.gallery__item', grid).forEach((item, index) => {
-          if (index >= initialVisibleCount) {
-            item.classList.toggle('is-collapsed', isExpanded);
-          }
-        });
+    const updateThumbTail = () => {
+      const tail = $('.gallery__thumb-tail', thumbTrack);
+      if (!tail) return;
+      const gap = parseFloat(getComputedStyle(thumbTrack).columnGap) || 0;
+      tail.style.width = Math.max(0, thumbViewport.clientWidth / 2 - 30 - gap) + 'px';
+    };
 
-        toggleButton.setAttribute('aria-expanded', String(!isExpanded));
-        toggleButton.textContent = isExpanded ? `더보기 (${hiddenCount})` : '접기';
+    const updateSelection = (index) => {
+      currentIndex = clampIndex(index);
+      $$('.gallery__thumb', thumbTrack).forEach((thumb, thumbIndex) => {
+        const selected = thumbIndex === currentIndex;
+        thumb.classList.toggle('is-active', selected);
+        thumb.setAttribute('aria-current', selected ? 'true' : 'false');
+      });
+      status.textContent = `${galleryImages.length}장 중 ${currentIndex + 1}번째 사진`;
+    };
 
-        if (isExpanded) {
-          $('#gallery').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const centerActiveThumb = (behavior = 'smooth') => {
+      const thumb = $$('.gallery__thumb', thumbTrack)[currentIndex];
+      if (!thumb) return;
+      const maxScroll = Math.max(0, thumbViewport.scrollWidth - thumbViewport.clientWidth);
+      const target = thumb.offsetLeft - (thumbViewport.clientWidth - thumb.offsetWidth) / 2;
+      thumbViewport.scrollTo({ left: Math.max(0, Math.min(maxScroll, target)), behavior });
+    };
+
+    const showGalleryImage = (index, options = {}) => {
+      const { moveMain = true, moveThumb = true, behavior = 'smooth' } = options;
+      updateSelection(index);
+      if (moveMain) {
+        mainViewport.scrollTo({ left: currentIndex * mainViewport.clientWidth, behavior });
+      }
+      if (moveThumb) centerActiveThumb(behavior);
+    };
+
+    const stopAutoplay = () => {
+      userInteracted = true;
+      if (autoplayTimer) clearInterval(autoplayTimer);
+      autoplayTimer = null;
+    };
+
+    const startAutoplay = () => {
+      if (reduceMotion || userInteracted || galleryImages.length < 2 || autoplayTimer) return;
+      autoplayTimer = setInterval(() => {
+        showGalleryImage((currentIndex + 1) % galleryImages.length);
+      }, GALLERY_AUTOPLAY_MS);
+    };
+
+    const bindDragScroller = (scroller, onRelease) => {
+      const drag = { active: false, moved: false, startX: 0, startScroll: 0, suppressClickUntil: 0 };
+
+      scroller.addEventListener('pointerdown', (event) => {
+        if (!event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) return;
+        stopAutoplay();
+        drag.active = true;
+        drag.moved = false;
+        drag.startX = event.clientX;
+        drag.startScroll = scroller.scrollLeft;
+      });
+
+      scroller.addEventListener('pointermove', (event) => {
+        if (!drag.active) return;
+        const distance = event.clientX - drag.startX;
+        if (Math.abs(distance) > 4) {
+          drag.moved = true;
+          scroller.classList.add('is-dragging');
+          if (!scroller.hasPointerCapture(event.pointerId)) scroller.setPointerCapture(event.pointerId);
+        }
+        if (drag.moved) {
+          scroller.scrollLeft = drag.startScroll - distance;
+          event.preventDefault();
         }
       });
-    }
+
+      const finishDrag = (event) => {
+        if (!drag.active) return;
+        drag.active = false;
+        if (scroller.hasPointerCapture(event.pointerId)) scroller.releasePointerCapture(event.pointerId);
+        scroller.classList.remove('is-dragging');
+        if (drag.moved) {
+          drag.suppressClickUntil = Date.now() + 250;
+          onRelease();
+        }
+      };
+
+      scroller.addEventListener('pointerup', finishDrag);
+      scroller.addEventListener('pointercancel', finishDrag);
+      return () => Date.now() < drag.suppressClickUntil;
+    };
+
+    const focusLeftmostVisibleThumb = () => {
+      const viewportRect = thumbViewport.getBoundingClientRect();
+      const thumbs = $$('.gallery__thumb', thumbTrack);
+      const firstVisible = thumbs.find((thumb) => {
+        const rect = thumb.getBoundingClientRect();
+        const visibleWidth = Math.min(rect.right, viewportRect.right) - Math.max(rect.left, viewportRect.left);
+        return visibleWidth >= rect.width / 2;
+      });
+      if (!firstVisible) return;
+      showGalleryImage(Number(firstVisible.dataset.index), { moveThumb: false });
+    };
+
+    galleryImages.forEach((src, i) => {
+      const slide = document.createElement('div');
+      slide.className = 'gallery__slide';
+      slide.innerHTML = `<img src="${src}" alt="갤러리 사진 ${i + 1}" loading="${i === 0 ? 'eager' : 'lazy'}" draggable="false">`;
+      mainTrack.appendChild(slide);
+
+      const thumb = document.createElement('button');
+      thumb.className = 'gallery__thumb';
+      thumb.type = 'button';
+      thumb.dataset.index = String(i);
+      thumb.setAttribute('aria-label', `${i + 1}번째 사진 보기`);
+      thumb.innerHTML = `<img src="${src}" alt="" loading="lazy" draggable="false">`;
+      thumbTrack.appendChild(thumb);
+    });
+
+    const tail = document.createElement('span');
+    tail.className = 'gallery__thumb-tail';
+    tail.setAttribute('aria-hidden', 'true');
+    thumbTrack.appendChild(tail);
+
+    const suppressMainClick = bindDragScroller(mainViewport, () => {
+      const index = Math.round(mainViewport.scrollLeft / Math.max(1, mainViewport.clientWidth));
+      showGalleryImage(index);
+    });
+    const suppressThumbClick = bindDragScroller(thumbViewport, focusLeftmostVisibleThumb);
+
+    mainTrack.addEventListener('click', (event) => {
+      if (suppressMainClick()) return;
+      const slide = event.target.closest('.gallery__slide');
+      if (!slide) return;
+      stopAutoplay();
+      openPhotoModal(galleryImages, $$('.gallery__slide', mainTrack).indexOf(slide));
+    });
+
+    thumbTrack.addEventListener('click', (event) => {
+      if (suppressThumbClick()) return;
+      const thumb = event.target.closest('.gallery__thumb');
+      if (!thumb) return;
+      stopAutoplay();
+      showGalleryImage(Number(thumb.dataset.index));
+    });
+
+    mainViewport.addEventListener('scroll', () => {
+      clearTimeout(mainScrollTimer);
+      mainScrollTimer = setTimeout(() => {
+        const index = Math.round(mainViewport.scrollLeft / Math.max(1, mainViewport.clientWidth));
+        if (index !== currentIndex) {
+          updateSelection(index);
+          centerActiveThumb();
+        }
+      }, 100);
+    }, { passive: true });
+
+    mainViewport.addEventListener('wheel', stopAutoplay, { passive: true });
+
+    thumbViewport.addEventListener('wheel', () => {
+      stopAutoplay();
+      clearTimeout(thumbWheelTimer);
+      thumbWheelTimer = setTimeout(focusLeftmostVisibleThumb, 140);
+    }, { passive: true });
+
+    const handleGalleryKeydown = (event) => {
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      event.preventDefault();
+      stopAutoplay();
+      showGalleryImage(currentIndex + (event.key === 'ArrowRight' ? 1 : -1));
+    };
+    mainViewport.addEventListener('keydown', handleGalleryKeydown);
+    thumbViewport.addEventListener('keydown', handleGalleryKeydown);
+
+    window.addEventListener('resize', () => {
+      updateThumbTail();
+      showGalleryImage(currentIndex, { behavior: 'auto' });
+    });
+
+    updateThumbTail();
+    showGalleryImage(0, { behavior: 'auto' });
+    viewer.classList.add('is-ready');
+    startAutoplay();
   }
 
   /* ═══════════════════════════════════════════
@@ -1015,7 +1176,7 @@
 
   function showLoadingPlaceholders() {
     const storyPhotos = $('#storyPhotos');
-    const galleryGrid = $('#galleryGrid');
+    const galleryMainTrack = $('#galleryMainTrack');
 
     // Reserve the final photo layout before async image detection completes.
     // This prevents scroll anchoring from moving the page when photos are added.
@@ -1023,8 +1184,8 @@
     if (storyPhotos) {
       storyPhotos.innerHTML = placeholder.repeat(STORY_PLACEHOLDER_COUNT);
     }
-    if (galleryGrid) {
-      galleryGrid.innerHTML = placeholder.repeat(INITIAL_GALLERY_VISIBLE_COUNT);
+    if (galleryMainTrack) {
+      galleryMainTrack.innerHTML = '<div class="loading-photo-placeholder gallery__main-placeholder" aria-hidden="true"></div>';
     }
   }
 
