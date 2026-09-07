@@ -993,7 +993,8 @@ a {
   scroll-behavior: smooth;
   overscroll-behavior-inline: contain;
   scrollbar-width: none;
-  touch-action: pan-y;
+  touch-action: pan-x pan-y;
+  -webkit-overflow-scrolling: touch;
   cursor: grab;
 }
 
@@ -1071,7 +1072,8 @@ a {
   overflow-y: hidden;
   overscroll-behavior-inline: contain;
   scrollbar-width: none;
-  touch-action: pan-y;
+  touch-action: pan-x pan-y;
+  -webkit-overflow-scrolling: touch;
   cursor: grab;
 }
 
