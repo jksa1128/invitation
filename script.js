@@ -16,6 +16,32 @@
   const GALLERY_AUTOPLAY_MS = 3000;
   const STORY_PLACEHOLDER_COUNT = 2;
 
+  function initZoomLock() {
+    const preventZoom = (event) => event.preventDefault();
+
+    // iOS WebKit pinch gesture events.
+    document.addEventListener('gesturestart', preventZoom, { passive: false });
+    document.addEventListener('gesturechange', preventZoom, { passive: false });
+    document.addEventListener('gestureend', preventZoom, { passive: false });
+
+    // Multi-touch fallback for embedded mobile WebViews.
+    document.addEventListener('touchmove', (event) => {
+      if (event.touches.length > 1) preventZoom(event);
+    }, { passive: false });
+
+    // Desktop trackpad/mouse zoom and keyboard shortcuts.
+    document.addEventListener('wheel', (event) => {
+      if (event.ctrlKey || event.metaKey) preventZoom(event);
+    }, { passive: false });
+
+    document.addEventListener('keydown', (event) => {
+      if (!event.ctrlKey && !event.metaKey) return;
+      if (['+', '-', '=', '0', 'Add', 'Subtract'].includes(event.key)) {
+        preventZoom(event);
+      }
+    });
+  }
+
   function formatDate(dateStr, timeStr) {
     const d = new Date(`${dateStr}T${timeStr}:00`);
     const days = ['일', '월', '화', '수', '목', '금', '토'];
@@ -1514,6 +1540,7 @@
      ═══════════════════════════════════════════ */
 
   async function init() {
+    initZoomLock();
     setMetaTags();
     initBackgroundMusic();
     initCurtain();
