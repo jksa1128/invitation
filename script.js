@@ -13,7 +13,8 @@
   const $ = (sel, ctx = document) => ctx.querySelector(sel);
   const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
   const ASSET_VERSION = '20260823-8';
-  const GALLERY_AUTOPLAY_MS = 3000;
+  const GALLERY_AUTOPLAY_HOLD_MS = 3000;
+  const GALLERY_TRANSITION_MS = 1000;
   const STORY_PLACEHOLDER_COUNT = 2;
 
   function initZoomLock() {
@@ -674,6 +675,8 @@
 
     let currentIndex = 0;
     let autoplayTimer = null;
+    let mainAnimationFrame = null;
+    let mainAnimationToken = 0;
     let mainScrollTimer = null;
     let thumbWheelTimer = null;
     let userInteracted = false;
@@ -706,26 +709,96 @@
       thumbViewport.scrollTo({ left: Math.max(0, Math.min(maxScroll, target)), behavior });
     };
 
+    const cancelMainAnimation = () => {
+      mainAnimationToken += 1;
+      if (mainAnimationFrame) cancelAnimationFrame(mainAnimationFrame);
+      mainAnimationFrame = null;
+      mainViewport.classList.remove('is-auto-animating');
+    };
+
+    const animateMainScroll = (targetLeft, duration, onComplete) => {
+      cancelMainAnimation();
+      const animationToken = mainAnimationToken;
+      const startLeft = mainViewport.scrollLeft;
+      const distance = targetLeft - startLeft;
+
+      if (Math.abs(distance) < 1 || duration <= 0) {
+        mainViewport.scrollLeft = targetLeft;
+        onComplete?.();
+        return;
+      }
+
+      const startTime = performance.now();
+      mainViewport.classList.add('is-auto-animating');
+
+      const step = (now) => {
+        if (animationToken !== mainAnimationToken) return;
+        const progress = Math.min(1, (now - startTime) / duration);
+        const eased = progress < 0.5
+          ? 4 * progress * progress * progress
+          : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+        mainViewport.scrollLeft = startLeft + distance * eased;
+
+        if (progress < 1) {
+          mainAnimationFrame = requestAnimationFrame(step);
+          return;
+        }
+
+        mainAnimationFrame = null;
+        mainViewport.classList.remove('is-auto-animating');
+        mainViewport.scrollLeft = targetLeft;
+        onComplete?.();
+      };
+
+      mainAnimationFrame = requestAnimationFrame(step);
+    };
+
     const showGalleryImage = (index, options = {}) => {
-      const { moveMain = true, moveThumb = true, behavior = 'smooth' } = options;
+      const {
+        moveMain = true,
+        moveThumb = true,
+        behavior = 'smooth',
+        mainDuration = 0,
+        onMainSettled
+      } = options;
       updateSelection(index);
       if (moveMain) {
-        mainViewport.scrollTo({ left: currentIndex * mainViewport.clientWidth, behavior });
+        const targetLeft = currentIndex * mainViewport.clientWidth;
+        if (mainDuration > 0) {
+          animateMainScroll(targetLeft, mainDuration, onMainSettled);
+        } else {
+          cancelMainAnimation();
+          mainViewport.scrollTo({ left: targetLeft, behavior });
+          onMainSettled?.();
+        }
+      } else {
+        onMainSettled?.();
       }
       if (moveThumb) centerActiveThumb(behavior);
     };
 
     const stopAutoplay = () => {
       userInteracted = true;
-      if (autoplayTimer) clearInterval(autoplayTimer);
+      if (autoplayTimer) clearTimeout(autoplayTimer);
       autoplayTimer = null;
+      cancelMainAnimation();
     };
 
     const startAutoplay = () => {
       if (reduceMotion || userInteracted || galleryImages.length < 2 || autoplayTimer) return;
-      autoplayTimer = setInterval(() => {
-        showGalleryImage((currentIndex + 1) % galleryImages.length);
-      }, GALLERY_AUTOPLAY_MS);
+      const scheduleNext = () => {
+        if (userInteracted) return;
+        autoplayTimer = setTimeout(() => {
+          autoplayTimer = null;
+          if (userInteracted) return;
+          showGalleryImage((currentIndex + 1) % galleryImages.length, {
+            behavior: 'auto',
+            mainDuration: GALLERY_TRANSITION_MS,
+            onMainSettled: scheduleNext
+          });
+        }, GALLERY_AUTOPLAY_HOLD_MS);
+      };
+      scheduleNext();
     };
 
     const bindDragScroller = (scroller, onRelease) => {

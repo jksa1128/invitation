@@ -1009,6 +1009,11 @@ a {
   cursor: grabbing;
 }
 
+.gallery__main-viewport.is-auto-animating {
+  scroll-behavior: auto;
+  scroll-snap-type: none;
+}
+
 .gallery__main-track {
   display: flex;
   width: max-content;
@@ -2116,16 +2121,6 @@ a {
 
   .countdown__item {
     min-width: 4.5rem;
-  }
-
-  .story__photos {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--spacing-md);
-  }
-
-  .story__photo-item img {
-    aspect-ratio: 3 / 2;
   }
 
   .section__title {
