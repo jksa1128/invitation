@@ -2,12 +2,12 @@
  * Wedding Invitation Configuration
  *
  * 이 파일에서 청첩장의 모든 정보를 수정할 수 있습니다.
- * 이미지는 설정이 필요 없습니다. 아래 폴더에 순번 파일명으로 넣으면 자동 감지됩니다.
+ * 이미지는 아래 images 설정의 개수와 경로를 사용합니다.
  *
  * 이미지 폴더 구조 (파일명 규칙):
  *   images/hero/1.jpg      - 메인 사진 (1장, 필수)
- *   images/story/1.jpg, 2.jpg, ...  - 스토리 사진들 (순번, 자동 감지)
- *   images/gallery/1.jpg, 2.jpg, ... - 갤러리 사진들 (순번, 자동 감지)
+ *   images/story/1.jpg, 2.jpg, ...  - 스토리 사진들
+ *   images/gallery/1.jpg, 2.jpg, ... - 갤러리 사진들
  *   images/location/1.jpg  - 약도/지도 이미지 (1장)
  *   images/og/1.jpg        - 카카오톡 공유 썸네일 (1장)
  */
@@ -15,6 +15,22 @@
 const CONFIG = {
   // ── 초대장 열기 ──
   useCurtain: false,  // 초대장 열기 화면 사용 여부 (true: 사용, false: 바로 본문 표시)
+
+  // ── 이미지 리소스 ──
+  // 사진 교체 시 count를 실제 파일 수에 맞춰 주세요.
+  // 썸네일/화면용/팝업용 파일을 분리하면 각 path만 변경하면 됩니다.
+  images: {
+    story: {
+      count: 2,
+      path: "images/story"
+    },
+    gallery: {
+      count: 30,
+      thumbPath: "images/gallery",
+      displayPath: "images/gallery",
+      fullPath: "images/gallery"
+    }
+  },
 
   // ── 메인 (히어로) ──
   groom: {

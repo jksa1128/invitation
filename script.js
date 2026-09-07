@@ -12,10 +12,9 @@
 
   const $ = (sel, ctx = document) => ctx.querySelector(sel);
   const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
-  const ASSET_VERSION = '20260823-8';
+  const ASSET_VERSION = '20260908-1';
   const GALLERY_AUTOPLAY_HOLD_MS = 3000;
   const GALLERY_TRANSITION_MS = 1000;
-  const STORY_PLACEHOLDER_COUNT = 2;
 
   function initZoomLock() {
     const preventZoom = (event) => event.preventDefault();
@@ -63,37 +62,27 @@
   }
 
   /* ═══════════════════════════════════════════
-     Image Auto-Detection
+     Image Sources
      ═══════════════════════════════════════════ */
 
-  function loadImagesFromFolder(folder, maxAttempts = 50) {
-    return new Promise(resolve => {
-        const images = [];
-        let current = 1;
-        let consecutiveFails = 0;
+  function imagePath(path, index) {
+    return `${path}/${index}.jpg?v=${ASSET_VERSION}`;
+  }
 
-        function tryNext() {
-            if (current > maxAttempts || consecutiveFails >= 3) {
-                resolve(images);
-                return;
-            }
-            const img = new Image();
-            const path = `images/${folder}/${current}.jpg?v=${ASSET_VERSION}`;
-            img.onload = function() {
-                images.push(path);
-                consecutiveFails = 0;
-                current++;
-                tryNext();
-            };
-            img.onerror = function() {
-                consecutiveFails++;
-                current++;
-                tryNext();
-            };
-            img.src = path;
-        }
+  function getStoryImages() {
+    const settings = CONFIG.images.story;
+    return Array.from({ length: settings.count }, (_, index) => imagePath(settings.path, index + 1));
+  }
 
-        tryNext();
+  function getGalleryImages() {
+    const settings = CONFIG.images.gallery;
+    return Array.from({ length: settings.count }, (_, index) => {
+      const imageIndex = index + 1;
+      return {
+        thumb: imagePath(settings.thumbPath, imageIndex),
+        display: imagePath(settings.displayPath, imageIndex),
+        full: imagePath(settings.fullPath, imageIndex)
+      };
     });
   }
 
@@ -664,6 +653,7 @@
     const thumbViewport = $('#galleryThumbViewport');
     const thumbTrack = $('#galleryThumbTrack');
     const status = $('#galleryStatus');
+    const fullImages = galleryImages.map((image) => image.full);
 
     mainTrack.querySelectorAll('.loading-photo-placeholder').forEach((item) => item.remove());
 
@@ -679,10 +669,26 @@
     let mainAnimationToken = 0;
     let mainScrollTimer = null;
     let thumbWheelTimer = null;
+    let thumbTouchTimer = null;
+    let thumbTouchScrolling = false;
     let userInteracted = false;
+    let galleryActivated = false;
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const clampIndex = (index) => Math.max(0, Math.min(galleryImages.length - 1, index));
+
+    const loadDeferredImage = (image) => {
+      if (!image?.dataset.src) return;
+      image.src = image.dataset.src;
+      delete image.dataset.src;
+    };
+
+    const loadMainNeighbors = (index) => {
+      [index - 1, index, index + 1].forEach((candidate) => {
+        if (candidate < 0 || candidate >= galleryImages.length) return;
+        loadDeferredImage($$('.gallery__slide img', mainTrack)[candidate]);
+      });
+    };
 
     const updateThumbTail = () => {
       const tail = $('.gallery__thumb-tail', thumbTrack);
@@ -761,6 +767,7 @@
         mainDuration = 0,
         onMainSettled
       } = options;
+      loadMainNeighbors(clampIndex(index));
       updateSelection(index);
       if (moveMain) {
         const targetLeft = currentIndex * mainViewport.clientWidth;
@@ -785,7 +792,7 @@
     };
 
     const startAutoplay = () => {
-      if (reduceMotion || userInteracted || galleryImages.length < 2 || autoplayTimer) return;
+      if (!galleryActivated || userInteracted || galleryImages.length < 2 || autoplayTimer) return;
       const scheduleNext = () => {
         if (userInteracted) return;
         autoplayTimer = setTimeout(() => {
@@ -793,7 +800,7 @@
           if (userInteracted) return;
           showGalleryImage((currentIndex + 1) % galleryImages.length, {
             behavior: 'auto',
-            mainDuration: GALLERY_TRANSITION_MS,
+            mainDuration: reduceMotion ? 0 : GALLERY_TRANSITION_MS,
             onMainSettled: scheduleNext
           });
         }, GALLERY_AUTOPLAY_HOLD_MS);
@@ -807,6 +814,8 @@
       scroller.addEventListener('pointerdown', (event) => {
         if (!event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) return;
         stopAutoplay();
+        // Let mobile browsers handle native momentum scrolling and scroll snap.
+        if (event.pointerType !== 'mouse') return;
         drag.active = true;
         drag.moved = false;
         drag.startX = event.clientX;
@@ -855,10 +864,10 @@
       showGalleryImage(Number(firstVisible.dataset.index), { moveThumb: false });
     };
 
-    galleryImages.forEach((src, i) => {
+    galleryImages.forEach((image, i) => {
       const slide = document.createElement('div');
       slide.className = 'gallery__slide';
-      slide.innerHTML = `<img src="${src}" alt="갤러리 사진 ${i + 1}" loading="${i === 0 ? 'eager' : 'lazy'}" draggable="false">`;
+      slide.innerHTML = `<img data-src="${image.display}" alt="갤러리 사진 ${i + 1}" decoding="async" draggable="false">`;
       mainTrack.appendChild(slide);
 
       const thumb = document.createElement('button');
@@ -866,9 +875,28 @@
       thumb.type = 'button';
       thumb.dataset.index = String(i);
       thumb.setAttribute('aria-label', `${i + 1}번째 사진 보기`);
-      thumb.innerHTML = `<img src="${src}" alt="" loading="lazy" draggable="false">`;
+      thumb.innerHTML = `<img data-src="${image.thumb}" alt="" decoding="async" draggable="false">`;
       thumbTrack.appendChild(thumb);
     });
+
+    const thumbImages = $$('.gallery__thumb img', thumbTrack);
+    const startThumbLoading = () => {
+      if ('IntersectionObserver' in window) {
+        const thumbObserver = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (!entry.isIntersecting) return;
+            loadDeferredImage(entry.target);
+            thumbObserver.unobserve(entry.target);
+          });
+        }, {
+          root: thumbViewport,
+          rootMargin: '0px 60px'
+        });
+        thumbImages.forEach((image) => thumbObserver.observe(image));
+      } else {
+        thumbImages.forEach(loadDeferredImage);
+      }
+    };
 
     const tail = document.createElement('span');
     tail.className = 'gallery__thumb-tail';
@@ -881,12 +909,33 @@
     });
     const suppressThumbClick = bindDragScroller(thumbViewport, focusLeftmostVisibleThumb);
 
+    // Some embedded mobile webviews do not deliver Pointer Events consistently.
+    mainViewport.addEventListener('touchstart', stopAutoplay, { passive: true });
+    thumbViewport.addEventListener('touchstart', () => {
+      stopAutoplay();
+      thumbTouchScrolling = true;
+      clearTimeout(thumbTouchTimer);
+    }, { passive: true });
+
+    const settleThumbTouch = () => {
+      if (!thumbTouchScrolling) return;
+      clearTimeout(thumbTouchTimer);
+      thumbTouchTimer = setTimeout(() => {
+        thumbTouchScrolling = false;
+        focusLeftmostVisibleThumb();
+      }, 160);
+    };
+
+    thumbViewport.addEventListener('touchend', settleThumbTouch, { passive: true });
+    thumbViewport.addEventListener('touchcancel', settleThumbTouch, { passive: true });
+    thumbViewport.addEventListener('scroll', settleThumbTouch, { passive: true });
+
     mainTrack.addEventListener('click', (event) => {
       if (suppressMainClick()) return;
       const slide = event.target.closest('.gallery__slide');
       if (!slide) return;
       stopAutoplay();
-      openPhotoModal(galleryImages, $$('.gallery__slide', mainTrack).indexOf(slide));
+      openPhotoModal(fullImages, $$('.gallery__slide', mainTrack).indexOf(slide));
     });
 
     thumbTrack.addEventListener('click', (event) => {
@@ -902,6 +951,7 @@
       mainScrollTimer = setTimeout(() => {
         const index = Math.round(mainViewport.scrollLeft / Math.max(1, mainViewport.clientWidth));
         if (index !== currentIndex) {
+          loadMainNeighbors(index);
           updateSelection(index);
           centerActiveThumb();
         }
@@ -927,13 +977,34 @@
 
     window.addEventListener('resize', () => {
       updateThumbTail();
-      showGalleryImage(currentIndex, { behavior: 'auto' });
+      if (galleryActivated) {
+        showGalleryImage(currentIndex, { behavior: 'auto' });
+      }
     });
 
     updateThumbTail();
-    showGalleryImage(0, { behavior: 'auto' });
-    viewer.classList.add('is-ready');
-    startAutoplay();
+
+    const activateGallery = () => {
+      if (galleryActivated) return;
+      galleryActivated = true;
+      startThumbLoading();
+      showGalleryImage(0, { behavior: 'auto' });
+      viewer.classList.add('is-ready');
+      startAutoplay();
+    };
+
+    if ('IntersectionObserver' in window) {
+      const galleryObserver = new IntersectionObserver((entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        const rect = viewer.getBoundingClientRect();
+        if (rect.top > window.innerHeight + 300 || rect.bottom < -300) return;
+        galleryObserver.disconnect();
+        activateGallery();
+      }, { rootMargin: '300px 0px' });
+      galleryObserver.observe(viewer);
+    } else {
+      activateGallery();
+    }
   }
 
   /* ═══════════════════════════════════════════
@@ -1270,25 +1341,6 @@
   }
 
   /* ═══════════════════════════════════════════
-     Loading Placeholders
-     ═══════════════════════════════════════════ */
-
-  function showLoadingPlaceholders() {
-    const storyPhotos = $('#storyPhotos');
-    const galleryMainTrack = $('#galleryMainTrack');
-
-    // Reserve the final photo layout before async image detection completes.
-    // This prevents scroll anchoring from moving the page when photos are added.
-    const placeholder = '<div class="loading-photo-placeholder" aria-hidden="true"></div>';
-    if (storyPhotos) {
-      storyPhotos.innerHTML = placeholder.repeat(STORY_PLACEHOLDER_COUNT);
-    }
-    if (galleryMainTrack) {
-      galleryMainTrack.innerHTML = '<div class="loading-photo-placeholder gallery__main-placeholder" aria-hidden="true"></div>';
-    }
-  }
-
-  /* ═══════════════════════════════════════════
      Guestbook
      ═══════════════════════════════════════════ */
 
@@ -1612,7 +1664,7 @@
      Init
      ═══════════════════════════════════════════ */
 
-  async function init() {
+  function init() {
     initZoomLock();
     setMetaTags();
     initBackgroundMusic();
@@ -1621,9 +1673,6 @@
     initCountdown();
     initGreeting();
     initCalendar();
-
-    // Show loading placeholders while detecting images
-    showLoadingPlaceholders();
 
     // Init sections that don't depend on image detection
     initPhotoModal();
@@ -1635,19 +1684,11 @@
     initFooter();
     initScrollAnimations();
 
-    // Set story text immediately (photos load async)
+    // Build photo elements immediately; actual image bytes load only when needed.
     $('#storyTitle').textContent = CONFIG.story.title;
     $('#storyContent').textContent = CONFIG.story.content;
-
-    // Auto-detect story and gallery images in parallel
-    const [storyImages, galleryImages] = await Promise.all([
-      loadImagesFromFolder('story'),
-      loadImagesFromFolder('gallery')
-    ]);
-
-    // Render sections with discovered images
-    initStory(storyImages);
-    initGallery(galleryImages);
+    initStory(getStoryImages());
+    initGallery(getGalleryImages());
   }
 
   if (document.readyState === 'loading') {
