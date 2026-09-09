@@ -7,7 +7,9 @@
  * 이미지 폴더 구조 (파일명 규칙):
  *   images/hero/1.jpg      - 메인 사진 (1장, 필수)
  *   images/story/1.jpg, 2.jpg, ...  - 스토리 사진들
- *   images/gallery/1.jpg, 2.jpg, ... - 갤러리 사진들
+ *   images/gallery/thumb/1.jpg, ...   - 갤러리 썸네일
+ *   images/gallery/display/1.jpg, ... - 갤러리 화면용
+ *   images/gallery/full/1.jpg, ...    - 갤러리 팝업용
  *   images/location/1.jpg  - 약도/지도 이미지 (1장)
  *   images/og/1.jpg        - 카카오톡 공유 썸네일 (1장)
  */
@@ -25,10 +27,10 @@ const CONFIG = {
       path: "images/story"
     },
     gallery: {
-      count: 30,
-      thumbPath: "images/gallery",
-      displayPath: "images/gallery",
-      fullPath: "images/gallery"
+      count: 21,
+      thumbPath: "images/gallery/thumb",
+      displayPath: "images/gallery/display",
+      fullPath: "images/gallery/full"
     }
   },
 
