@@ -670,7 +670,9 @@
     let mainScrollTimer = null;
     let thumbWheelTimer = null;
     let thumbTouchTimer = null;
+    let thumbTouchActive = false;
     let thumbTouchScrolling = false;
+    let thumbTouchStartScroll = 0;
     let userInteracted = false;
     let galleryActivated = false;
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -913,7 +915,9 @@
     mainViewport.addEventListener('touchstart', stopAutoplay, { passive: true });
     thumbViewport.addEventListener('touchstart', () => {
       stopAutoplay();
-      thumbTouchScrolling = true;
+      thumbTouchActive = true;
+      thumbTouchScrolling = false;
+      thumbTouchStartScroll = thumbViewport.scrollLeft;
       clearTimeout(thumbTouchTimer);
     }, { passive: true });
 
@@ -921,14 +925,28 @@
       if (!thumbTouchScrolling) return;
       clearTimeout(thumbTouchTimer);
       thumbTouchTimer = setTimeout(() => {
+        thumbTouchActive = false;
         thumbTouchScrolling = false;
         focusLeftmostVisibleThumb();
       }, 160);
     };
 
-    thumbViewport.addEventListener('touchend', settleThumbTouch, { passive: true });
-    thumbViewport.addEventListener('touchcancel', settleThumbTouch, { passive: true });
-    thumbViewport.addEventListener('scroll', settleThumbTouch, { passive: true });
+    const finishThumbTouch = () => {
+      if (Math.abs(thumbViewport.scrollLeft - thumbTouchStartScroll) > 1) {
+        thumbTouchScrolling = true;
+      }
+      thumbTouchActive = false;
+      settleThumbTouch();
+    };
+
+    thumbViewport.addEventListener('touchend', finishThumbTouch, { passive: true });
+    thumbViewport.addEventListener('touchcancel', finishThumbTouch, { passive: true });
+    thumbViewport.addEventListener('scroll', () => {
+      if (thumbTouchActive && Math.abs(thumbViewport.scrollLeft - thumbTouchStartScroll) > 1) {
+        thumbTouchScrolling = true;
+      }
+      settleThumbTouch();
+    }, { passive: true });
 
     mainTrack.addEventListener('click', (event) => {
       if (suppressMainClick()) return;
