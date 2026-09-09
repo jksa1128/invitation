@@ -35,7 +35,7 @@ const CONFIG = {
   // ── 메인 (히어로) ──
   groom: {
     name: "우종건",
-    nameEn: "Woo JongKun",
+    nameEn: "Woo JongGun",
     father: "우관호",
     mother: "이가영",
     fatherDeceased: false,
