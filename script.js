@@ -431,7 +431,7 @@
     $('#heroNames').textContent = `${CONFIG.groom.name}  ·  ${CONFIG.bride.name}`;
     $('#heroDate').textContent = formatDate(CONFIG.wedding.date, CONFIG.wedding.time);
     $('#heroVenue').textContent = CONFIG.wedding.venue;
-    $('#openingNames').textContent = 'JONG KUN\nSEO AH';
+    $('#openingNames').textContent = 'JONG GUN\nSEO AH';
     $('#openingDate').textContent = formatDate(CONFIG.wedding.date, CONFIG.wedding.time);
 
     initHeroOpening();
