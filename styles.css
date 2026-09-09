@@ -963,7 +963,7 @@ a {
    Gallery Section
    ═══════════════════════════════════════════ */
 .gallery {
-  background-color: var(--color-bg-warm);
+  background-color: #fff;
   overflow: hidden;
 }
 
@@ -1058,12 +1058,12 @@ a {
 
 .gallery__thumb-shell::before {
   left: 0;
-  background: linear-gradient(90deg, var(--color-bg-warm) 0%, rgba(245, 240, 234, 0.78) 35%, rgba(245, 240, 234, 0) 100%);
+  background: linear-gradient(90deg, #fff 0%, rgba(255, 255, 255, 0.78) 35%, rgba(255, 255, 255, 0) 100%);
 }
 
 .gallery__thumb-shell::after {
   right: 0;
-  background: linear-gradient(270deg, var(--color-bg-warm) 0%, rgba(245, 240, 234, 0.78) 35%, rgba(245, 240, 234, 0) 100%);
+  background: linear-gradient(270deg, #fff 0%, rgba(255, 255, 255, 0.78) 35%, rgba(255, 255, 255, 0) 100%);
 }
 
 .gallery__thumb-viewport {
