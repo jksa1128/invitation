@@ -1032,10 +1032,10 @@ a {
 
 .gallery__slide img {
   display: block;
-  width: 71.33%;
-  max-width: 307px;
-  aspect-ratio: 2 / 3;
-  object-fit: cover;
+  width: 100%;
+  aspect-ratio: 1;
+  background-color: #fff;
+  object-fit: contain;
   pointer-events: none;
 }
 
@@ -2053,9 +2053,8 @@ a {
 }
 
 .gallery__main-placeholder {
-  width: min(71.33vw, 307px);
-  max-width: 307px;
-  aspect-ratio: 2 / 3;
+  width: 100%;
+  aspect-ratio: 1;
   margin: 0 auto;
 }
 
