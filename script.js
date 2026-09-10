@@ -69,11 +69,6 @@
     return `${path}/${index}.jpg?v=${ASSET_VERSION}`;
   }
 
-  function getStoryImages() {
-    const settings = CONFIG.images.story;
-    return Array.from({ length: settings.count }, (_, index) => imagePath(settings.path, index + 1));
-  }
-
   function getGalleryImages() {
     const settings = CONFIG.images.gallery;
     return Array.from({ length: settings.count }, (_, index) => {
@@ -616,29 +611,6 @@
       a.click();
       URL.revokeObjectURL(url);
       showToast('캘린더 파일이 다운로드됩니다');
-    });
-  }
-
-  /* ═══════════════════════════════════════════
-     Story Section
-     ═══════════════════════════════════════════ */
-
-  function initStory(storyImages) {
-    $('#storyTitle').textContent = CONFIG.story.title;
-    $('#storyContent').textContent = CONFIG.story.content;
-
-    const container = $('#storyPhotos');
-    container.querySelectorAll('.loading-photo-placeholder').forEach((item) => item.remove());
-
-    if (storyImages.length === 0) return;
-
-    storyImages.forEach((src, i) => {
-      const div = document.createElement('div');
-      div.className = 'story__photo-item animate-item';
-      div.setAttribute('data-animate', 'fade-up');
-      div.innerHTML = `<img src="${src}" alt="스토리 사진 ${i + 1}" loading="lazy">`;
-      div.addEventListener('click', () => openPhotoModal(storyImages, i));
-      container.appendChild(div);
     });
   }
 
@@ -1703,9 +1675,6 @@
     initScrollAnimations();
 
     // Build photo elements immediately; actual image bytes load only when needed.
-    $('#storyTitle').textContent = CONFIG.story.title;
-    $('#storyContent').textContent = CONFIG.story.content;
-    initStory(getStoryImages());
     initGallery(getGalleryImages());
   }
 

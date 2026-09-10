@@ -6,7 +6,6 @@
  *
  * 이미지 폴더 구조 (파일명 규칙):
  *   images/hero/1.jpg      - 메인 사진 (1장, 필수)
- *   images/story/1.jpg, 2.jpg, ...  - 스토리 사진들
  *   images/gallery/thumb/1.jpg, ...   - 갤러리 썸네일
  *   images/gallery/display/1.jpg, ... - 갤러리 화면용
  *   images/gallery/full/1.jpg, ...    - 갤러리 팝업용
@@ -22,10 +21,6 @@ const CONFIG = {
   // 사진 교체 시 count를 실제 파일 수에 맞춰 주세요.
   // 썸네일/화면용/팝업용 파일을 분리하면 각 path만 변경하면 됩니다.
   images: {
-    story: {
-      count: 2,
-      path: "images/story"
-    },
     gallery: {
       count: 21,
       thumbPath: "images/gallery/thumb",
@@ -93,12 +88,6 @@ const CONFIG = {
   greeting: {
     title: "소중한 분들을 초대합니다",
     content: "각자의 꿈을 향해 달리던 두 사림이\n같은 시선으로 세상을 바라보는 서로를 만나\n함께하는 여정을 약속합니다.\n\n따뜻한 마음으로 오셔서\n저희의 첫걸음을 축복해 주시면 감사하겠습니다."
-  },
-
-  // ── 우리의 이야기 ──
-  story: {
-    title: "우리의 이야기",
-    content: "서로 다른 길을 걷던 두 사람이\n하나의 길을 함께 걷게 되었습니다.\n\n여러분을 소중한 자리에 초대합니다."
   },
 
   // ── 오시는 길 ──
