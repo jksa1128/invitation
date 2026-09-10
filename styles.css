@@ -1514,15 +1514,9 @@ a {
   background: var(--color-bg);
 }
 
-.accordion__trigger span:nth-child(2) {
+.accordion__label {
   flex: 1;
   text-align: left;
-  margin-left: 0.5rem;
-}
-
-.accordion__icon {
-  color: var(--color-accent);
-  font-size: 0.875rem;
 }
 
 .accordion__arrow {
