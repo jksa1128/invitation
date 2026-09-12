@@ -12,7 +12,7 @@
 
   const $ = (sel, ctx = document) => ctx.querySelector(sel);
   const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
-  const ASSET_VERSION = '20260910-2';
+  const ASSET_VERSION = '20260912-1';
   const GALLERY_AUTOPLAY_HOLD_MS = 3000;
   const GALLERY_TRANSITION_MS = 1000;
 
