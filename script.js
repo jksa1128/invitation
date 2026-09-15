@@ -12,7 +12,7 @@
 
   const $ = (sel, ctx = document) => ctx.querySelector(sel);
   const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
-  const ASSET_VERSION = '20260912-2';
+  const ASSET_VERSION = '20260915-1';
   const GALLERY_AUTOPLAY_HOLD_MS = 3000;
   const GALLERY_TRANSITION_MS = 1000;
 
@@ -1353,9 +1353,49 @@
   }
 
   function guestbookApiUrl(params = {}) {
-    const url = new URL(CONFIG.guestbook.apiUrl);
-    Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
-    return url.toString();
+    const baseUrl = String(CONFIG.guestbook && CONFIG.guestbook.apiUrl || '').trim();
+    if (!/^https?:\/\//i.test(baseUrl)) {
+      throw guestbookUserError('축하글 기능을 준비 중입니다.');
+    }
+
+    const query = Object.entries(params)
+      .filter(([, value]) => value !== undefined && value !== null)
+      .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+      .join('&');
+    if (!query) return baseUrl;
+    return `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}${query}`;
+  }
+
+  function guestbookUserError(message) {
+    const error = new Error(message);
+    error.isGuestbookUserError = true;
+    return error;
+  }
+
+  function guestbookErrorMessage(error, fallback) {
+    if (error && error.isGuestbookUserError && error.message) return error.message;
+    console.warn('Guestbook request failed:', error);
+    return fallback;
+  }
+
+  async function fetchGuestbookJson(url, options, fallbackMessage, retryOnce = false) {
+    const attempts = retryOnce ? 2 : 1;
+    let lastError;
+
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      try {
+        const response = await fetch(url, options);
+        if (!response.ok) throw new Error(`Guestbook HTTP ${response.status}`);
+        const result = await response.json();
+        if (!result.ok) throw guestbookUserError(result.error || fallbackMessage);
+        return result;
+      } catch (error) {
+        if (error && error.isGuestbookUserError) throw error;
+        lastError = error;
+      }
+    }
+
+    throw lastError;
   }
 
   async function guestbookRequest(action, payload) {
@@ -1363,7 +1403,7 @@
       throw new Error('축하글 기능을 준비 중입니다.');
     }
 
-    const options = { cache: 'no-store', redirect: 'follow' };
+    const options = { cache: 'no-store' };
     let url;
     if (payload === undefined) {
       url = guestbookApiUrl({ action, t: Date.now() });
@@ -1374,10 +1414,7 @@
       options.body = JSON.stringify({ action, clientId: guestbookClientId(), ...payload });
     }
 
-    const response = await fetch(url, options);
-    const result = await response.json();
-    if (!result.ok) throw new Error(result.error || '요청을 처리하지 못했습니다.');
-    return result;
+    return fetchGuestbookJson(url, options, '요청을 처리하지 못했습니다.');
   }
 
   function formatGuestbookDate(value) {
@@ -1439,9 +1476,12 @@
         t: Date.now()
       };
       if (!reset && guestbookState.nextCursor) params.cursor = guestbookState.nextCursor;
-      const response = await fetch(guestbookApiUrl(params), { cache: 'no-store', redirect: 'follow' });
-      const result = await response.json();
-      if (!result.ok) throw new Error(result.error || '축하글을 불러오지 못했습니다.');
+      const result = await fetchGuestbookJson(
+        guestbookApiUrl(params),
+        { cache: 'no-store' },
+        '축하글을 불러오지 못했습니다.',
+        true
+      );
 
       guestbookState.messages = reset ? result.messages : guestbookState.messages.concat(result.messages);
       guestbookState.nextCursor = result.nextCursor || '';
@@ -1456,7 +1496,10 @@
       $('#guestbookHeartBtn').setAttribute('aria-pressed', result.liked ? 'true' : 'false');
     } catch (error) {
       status.hidden = false;
-      status.textContent = error.message;
+      status.textContent = guestbookErrorMessage(
+        error,
+        '축하글을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'
+      );
     } finally {
       guestbookState.loading = false;
     }
@@ -1531,7 +1574,10 @@
         showToast('축하글이 등록되었습니다');
         await loadGuestbook(true);
       } catch (requestError) {
-        error.textContent = requestError.message;
+        error.textContent = guestbookErrorMessage(
+          requestError,
+          '축하글을 등록하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+        );
       } finally {
         setGuestbookSubmitting(submit, false, '등록');
       }
@@ -1582,7 +1628,10 @@
         showToast('축하글이 삭제되었습니다');
         await loadGuestbook(true);
       } catch (requestError) {
-        error.textContent = requestError.message;
+        error.textContent = guestbookErrorMessage(
+          requestError,
+          '축하글을 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+        );
       } finally {
         setGuestbookSubmitting(submit, false, '삭제');
       }
@@ -1600,7 +1649,10 @@
         $('#guestbookHeartCount').textContent = String(result.heartCount);
         showToast('축하해 주셔서 감사합니다');
       } catch (error) {
-        showToast(error.message);
+        showToast(guestbookErrorMessage(
+          error,
+          '하트를 보내지 못했습니다. 잠시 후 다시 시도해 주세요.'
+        ));
       } finally {
         heartButton.disabled = false;
       }

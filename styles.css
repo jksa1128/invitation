@@ -1789,6 +1789,10 @@ a {
   margin: 1rem auto 0;
 }
 
+.guestbook__more[hidden] {
+  display: none;
+}
+
 .guestbook-heart {
   display: grid;
   justify-items: center;
