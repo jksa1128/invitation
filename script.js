@@ -1404,6 +1404,7 @@
     const dialog = $('#rsvpDialog');
     const form = $('#rsvpForm');
     const enabled = Boolean(CONFIG.rsvp && CONFIG.rsvp.enabled !== false && rsvpApiUrl());
+    let autoPromptObserver = null;
 
     if (!enabled) {
       $('#rsvp').hidden = true;
@@ -1423,7 +1424,14 @@
       });
     };
 
+    const stopAutoPrompt = () => {
+      if (!autoPromptObserver) return;
+      autoPromptObserver.disconnect();
+      autoPromptObserver = null;
+    };
+
     const openDialog = (editing = false) => {
+      stopAutoPrompt();
       $('#rsvpFormError').textContent = '';
       if (editing && rsvpState.response) {
         fillRsvpForm(form, rsvpState.response);
@@ -1432,6 +1440,7 @@
       }
       updateAttendanceDetails();
       dialog.showModal();
+      window.requestAnimationFrame(() => dialog.focus({ preventScroll: true }));
     };
 
     $('#rsvpOpenBtn').addEventListener('click', () => openDialog(false));
@@ -1533,9 +1542,18 @@
     if (rsvpState.submitted) {
       loadExistingRsvp();
     } else {
-      window.setTimeout(() => {
-        if (!dialog.open && !rsvpState.submitted) openDialog(false);
-      }, 900);
+      const calendarSection = $('#calendarSection');
+      if (calendarSection) {
+        autoPromptObserver = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            const passedCalendar = entry.boundingClientRect.bottom <= 0;
+            if (passedCalendar && !dialog.open && !rsvpState.submitted) {
+              openDialog(false);
+            }
+          });
+        }, { threshold: 0 });
+        autoPromptObserver.observe(calendarSection);
+      }
     }
   }
 

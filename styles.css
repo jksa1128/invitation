@@ -1518,6 +1518,34 @@ a {
   max-height: min(760px, calc(100dvh - 1.5rem));
 }
 
+.rsvp-dialog[open] {
+  animation: rsvp-dialog-fade-in 0.38s ease both;
+}
+
+.rsvp-dialog[open]::backdrop {
+  animation: rsvp-backdrop-fade-in 0.38s ease both;
+}
+
+.rsvp-dialog:focus {
+  outline: none;
+}
+
+@keyframes rsvp-dialog-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes rsvp-backdrop-fade-in {
+  from { background-color: rgba(35, 30, 25, 0); }
+  to { background-color: rgba(35, 30, 25, 0.62); }
+}
+
 .rsvp-form {
   max-height: min(760px, calc(100dvh - 1.5rem));
   overflow-y: auto;
@@ -1539,6 +1567,9 @@ a {
 .rsvp-form .guestbook-form__close {
   flex: 0 0 auto;
   align-self: flex-start;
+  outline: none;
+  box-shadow: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .rsvp-form__field {
@@ -1650,6 +1681,27 @@ a {
 .rsvp-form textarea:focus {
   border-color: var(--color-accent);
   box-shadow: 0 0 0 3px rgba(184, 149, 106, 0.13);
+}
+
+.rsvp-form .guestbook-form__submit {
+  outline: none;
+  box-shadow: none;
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.rsvp-form .guestbook-form__submit:focus,
+.rsvp-form .guestbook-form__submit:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.rsvp-form .guestbook-form__submit:active {
+  border-color: var(--color-accent-dark);
+  background: var(--color-accent-dark);
+  transform: scale(0.985);
 }
 
 /* ═══════════════════════════════════════════
@@ -2294,6 +2346,11 @@ a {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .rsvp-dialog[open],
+  .rsvp-dialog[open]::backdrop {
+    animation: none;
+  }
+
   .hero {
     height: var(--hero-height, 100vh);
     min-height: var(--hero-height, 100vh);
