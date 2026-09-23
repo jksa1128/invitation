@@ -1491,6 +1491,168 @@ a {
 }
 
 /* ═══════════════════════════════════════════
+   RSVP
+   ═══════════════════════════════════════════ */
+.rsvp {
+  background: var(--color-bg);
+  text-align: center;
+}
+
+.rsvp__status {
+  margin: -1.25rem 0 1.5rem;
+  color: var(--color-text-light);
+  font-size: 0.9rem;
+}
+
+.rsvp__button {
+  display: flex;
+  width: min(100%, 270px);
+  margin: 0 auto;
+}
+
+.rsvp__button[hidden] {
+  display: none;
+}
+
+.rsvp-dialog {
+  max-height: min(760px, calc(100dvh - 1.5rem));
+}
+
+.rsvp-form {
+  max-height: min(760px, calc(100dvh - 1.5rem));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: calc(1.4rem + var(--safe-bottom));
+}
+
+.rsvp-form .guestbook-form__header {
+  position: sticky;
+  top: -1.4rem;
+  z-index: 3;
+  margin: -1.4rem -1.4rem 0;
+  padding: 1.25rem 1.4rem 0.9rem;
+  border-bottom: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(8px);
+}
+
+.rsvp-form .guestbook-form__close {
+  flex: 0 0 auto;
+  align-self: flex-start;
+}
+
+.rsvp-form__field {
+  min-width: 0;
+  border: 0;
+}
+
+.rsvp-form__field legend,
+.rsvp-form label > span {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--color-text-light);
+  font-size: 0.8rem;
+}
+
+.rsvp-form small {
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+}
+
+.rsvp-form__segments {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.rsvp-form__segments--two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.rsvp-form__segments--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.rsvp-form__segments label {
+  position: relative;
+  display: block;
+  cursor: pointer;
+}
+
+.rsvp-form__segments input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.rsvp-form__segments label > span {
+  display: flex;
+  min-height: 46px;
+  margin: 0;
+  padding: 0.55rem 0.35rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-card);
+  color: var(--color-text-light);
+  font-size: 0.78rem;
+  line-height: 1.35;
+  text-align: center;
+  transition: var(--transition);
+}
+
+.rsvp-form__segments input:checked + span {
+  border-color: var(--color-accent);
+  background: #f7f0e7;
+  color: var(--color-accent-dark);
+  box-shadow: inset 0 0 0 1px var(--color-accent);
+}
+
+.rsvp-form__segments input:focus-visible + span {
+  outline: 2px solid var(--color-accent-light);
+  outline-offset: 2px;
+}
+
+.rsvp-form__details {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-warm);
+}
+
+.rsvp-form__details[hidden] {
+  display: none;
+}
+
+.rsvp-form input,
+.rsvp-form select,
+.rsvp-form textarea {
+  width: 100%;
+  padding: 0.75rem 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  background: var(--color-bg-card);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 16px;
+}
+
+.rsvp-form select {
+  appearance: auto;
+}
+
+.rsvp-form input:focus,
+.rsvp-form select:focus,
+.rsvp-form textarea:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(184, 149, 106, 0.13);
+}
+
+/* ═══════════════════════════════════════════
    Account Section (축의금)
    ═══════════════════════════════════════════ */
 .account {

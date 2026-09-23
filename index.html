@@ -21,8 +21,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Noto+Serif+KR:wght@200;300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="styles.css?v=20260915-1">
-  <script src="config.js?v=20260911-1"></script>
+  <link rel="stylesheet" href="styles.css?v=20260923-2">
+  <script src="config.js?v=20260923-2"></script>
 </head>
 <body>
 
@@ -277,6 +277,18 @@
       </div>
     </section>
 
+    <!-- ─── Attendance Section ─── -->
+    <section class="section rsvp" id="rsvp">
+      <div class="section__inner">
+        <h2 class="section__title animate-item" data-animate="fade-up">참석 여부 전달</h2>
+        <p class="rsvp__status animate-item" data-animate="fade-up" id="rsvpStatus">예식 참석 여부를 전달해 주세요.</p>
+        <button class="btn btn--outline rsvp__button animate-item" data-animate="fade-up"
+          id="rsvpOpenBtn" type="button">참석 여부 전달하기</button>
+        <button class="btn btn--outline rsvp__button animate-item" data-animate="fade-up"
+          id="rsvpEditBtn" type="button" hidden>전달 내용 수정하기</button>
+      </div>
+    </section>
+
     <!-- ─── Kakao Share Section ─── -->
     <section class="section share" id="share">
       <div class="section__inner">
@@ -298,6 +310,71 @@
     </footer>
 
   </main>
+
+  <dialog class="guestbook-dialog rsvp-dialog" id="rsvpDialog" aria-labelledby="rsvpDialogTitle">
+    <form class="guestbook-form rsvp-form" id="rsvpForm" method="dialog" novalidate>
+      <div class="guestbook-form__header">
+        <h2 id="rsvpDialogTitle">참석 여부 전달</h2>
+        <button class="guestbook-form__close" id="rsvpDialogClose" type="button" aria-label="닫기">×</button>
+      </div>
+
+      <fieldset class="rsvp-form__field">
+        <legend>구분</legend>
+        <div class="rsvp-form__segments rsvp-form__segments--two">
+          <label><input type="radio" name="side" value="groom" checked><span>신랑측</span></label>
+          <label><input type="radio" name="side" value="bride"><span>신부측</span></label>
+        </div>
+      </fieldset>
+
+      <label>
+        <span>성함</span>
+        <input id="rsvpName" name="name" type="text" maxlength="20" autocomplete="name" placeholder="성함을 입력해 주세요" required>
+      </label>
+
+      <fieldset class="rsvp-form__field">
+        <legend>참석 여부</legend>
+        <div class="rsvp-form__segments rsvp-form__segments--two">
+          <label><input type="radio" name="attendance" value="attending" checked><span>참석합니다</span></label>
+          <label><input type="radio" name="attendance" value="not_attending"><span>참석이 어렵습니다</span></label>
+        </div>
+      </fieldset>
+
+      <div class="rsvp-form__details" id="rsvpAttendanceDetails">
+        <label>
+          <span>참석 인원 <small>본인 포함</small></span>
+          <select id="rsvpGuestCount" name="guestCount" required>
+            <option value="1">1명</option>
+            <option value="2">2명</option>
+            <option value="3">3명</option>
+            <option value="4">4명</option>
+            <option value="5">5명</option>
+            <option value="6">6명</option>
+            <option value="7">7명</option>
+            <option value="8">8명</option>
+            <option value="9">9명</option>
+            <option value="10">10명</option>
+          </select>
+        </label>
+
+        <fieldset class="rsvp-form__field">
+          <legend>식사 여부</legend>
+          <div class="rsvp-form__segments rsvp-form__segments--three">
+            <label><input type="radio" name="meal" value="yes" checked><span>식사함</span></label>
+            <label><input type="radio" name="meal" value="no"><span>식사 안 함</span></label>
+            <label><input type="radio" name="meal" value="undecided"><span>미정</span></label>
+          </div>
+        </fieldset>
+      </div>
+
+      <label>
+        <span>전달사항 <small>선택</small></span>
+        <textarea id="rsvpNote" name="note" rows="3" maxlength="100" placeholder="필요한 내용이 있다면 남겨주세요"></textarea>
+      </label>
+
+      <p class="guestbook-form__error" id="rsvpFormError" role="alert"></p>
+      <button class="btn btn--primary guestbook-form__submit" id="rsvpSubmitBtn" type="submit">전달하기</button>
+    </form>
+  </dialog>
 
   <dialog class="guestbook-dialog" id="guestbookDialog" aria-labelledby="guestbookDialogTitle">
     <form class="guestbook-form" id="guestbookForm" method="dialog" novalidate>
@@ -341,6 +418,6 @@
 
   <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.8.2/kakao.min.js"
     crossorigin="anonymous"></script>
-  <script src="script.js?v=20260915-1"></script>
+  <script src="script.js?v=20260923-2"></script>
 </body>
 </html>

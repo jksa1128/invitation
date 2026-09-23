@@ -3,6 +3,8 @@ const GUESTBOOK_LIKES_SHEET = '좋아요';
 const GUESTBOOK_MESSAGE_HEADERS = ['id', 'createdAt', 'name', 'message', 'passwordHash', 'salt', 'deletedAt', 'clientHash'];
 const GUESTBOOK_LIKE_HEADERS = ['id', 'createdAt', 'clientHash'];
 const MAX_GUESTBOOK_MESSAGES_PER_CLIENT = 5;
+const RSVP_SHEET = '참석여부';
+const RSVP_HEADERS = ['id', 'updatedAt', 'side', 'name', 'attendance', 'guestCount', 'meal', 'note', 'clientHash'];
 
 function setupWeddingGuestbook() {
   const properties = PropertiesService.getScriptProperties();
@@ -19,8 +21,9 @@ function setupWeddingGuestbook() {
 
   ensureSheet_(spreadsheet, GUESTBOOK_MESSAGES_SHEET, GUESTBOOK_MESSAGE_HEADERS);
   ensureSheet_(spreadsheet, GUESTBOOK_LIKES_SHEET, GUESTBOOK_LIKE_HEADERS);
+  ensureSheet_(spreadsheet, RSVP_SHEET, RSVP_HEADERS);
   SpreadsheetApp.flush();
-  return '축하글과 좋아요 시트 준비가 완료되었습니다.';
+  return '축하글, 좋아요, 참석여부 시트 준비가 완료되었습니다.';
 }
 
 function resetWeddingGuestbookData() {
@@ -39,8 +42,11 @@ function resetWeddingGuestbookData() {
 function doGet(e) {
   try {
     const action = String((e && e.parameter && e.parameter.action) || 'bootstrap');
-    if (action !== 'bootstrap') throw new Error('지원하지 않는 요청입니다.');
-    return json_(bootstrap_(e.parameter || {}));
+    switch (action) {
+      case 'bootstrap': return json_(bootstrap_(e.parameter || {}));
+      case 'rsvp': return json_(getRsvp_(e.parameter || {}));
+      default: throw new Error('지원하지 않는 요청입니다.');
+    }
   } catch (error) {
     return json_({ ok: false, error: publicError_(error) });
   }
@@ -53,6 +59,7 @@ function doPost(e) {
       case 'createMessage': return json_(createMessage_(data));
       case 'deleteMessage': return json_(deleteMessage_(data));
       case 'like': return json_(like_(data));
+      case 'createRsvp': return json_(createRsvp_(data));
       default: throw new Error('지원하지 않는 요청입니다.');
     }
   } catch (error) {
@@ -188,6 +195,89 @@ function like_(data) {
   } finally {
     lock.releaseLock();
   }
+}
+
+function createRsvp_(data) {
+  const sideValues = { groom: '신랑측', bride: '신부측' };
+  const attendanceValues = { attending: '참석', not_attending: '불참' };
+  const mealValues = { yes: '식사함', no: '식사 안 함', undecided: '미정' };
+  const side = String(data.side || '');
+  const name = cleanText_(data.name, 20);
+  const attendance = String(data.attendance || '');
+  const note = cleanText_(data.note, 100, true);
+  const attending = attendance === 'attending';
+  const guestCount = attending ? Number(data.guestCount) : 0;
+  const meal = attending ? String(data.meal || '') : '';
+
+  if (!sideValues[side]) throw new Error('신랑측 또는 신부측을 선택해 주세요.');
+  if (!name) throw new Error('성함을 입력해 주세요.');
+  if (!attendanceValues[attendance]) throw new Error('참석 여부를 선택해 주세요.');
+  if (attending && (!Number.isInteger(guestCount) || guestCount < 1 || guestCount > 10)) {
+    throw new Error('참석 인원을 확인해 주세요.');
+  }
+  if (attending && !mealValues[meal]) throw new Error('식사 여부를 선택해 주세요.');
+
+  const clientHash = hashClient_(data.clientId || '');
+  if (!clientHash) throw new Error('브라우저 정보를 확인할 수 없습니다.');
+  const cache = CacheService.getScriptCache();
+  if (cache.get(`rsvp:${clientHash}`)) throw new Error('잠시 후 다시 전달해 주세요.');
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const sheet = ensureSheet_(guestbookSpreadsheet_(), RSVP_SHEET, RSVP_HEADERS);
+    const rows = sheet.getLastRow() < 2
+      ? []
+      : sheet.getRange(2, 1, sheet.getLastRow() - 1, RSVP_HEADERS.length).getValues();
+    const index = rows.findIndex(row => String(row[8]) === clientHash);
+    const row = [
+      index >= 0 ? String(rows[index][0]) : Utilities.getUuid(),
+      new Date().toISOString(),
+      sideValues[side],
+      name,
+      attendanceValues[attendance],
+      guestCount,
+      attending ? mealValues[meal] : '',
+      note,
+      clientHash
+    ];
+
+    if (index >= 0) {
+      sheet.getRange(index + 2, 1, 1, RSVP_HEADERS.length).setValues([row]);
+    } else {
+      sheet.appendRow(row);
+    }
+    cache.put(`rsvp:${clientHash}`, '1', 5);
+    return { ok: true, updated: index >= 0 };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function getRsvp_(params) {
+  const clientHash = hashClient_(params.clientId || '');
+  if (!clientHash) throw new Error('브라우저 정보를 확인할 수 없습니다.');
+
+  const sheet = ensureSheet_(guestbookSpreadsheet_(), RSVP_SHEET, RSVP_HEADERS);
+  if (sheet.getLastRow() < 2) return { ok: true, rsvp: null };
+  const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, RSVP_HEADERS.length).getValues();
+  const row = rows.find(item => String(item[8]) === clientHash);
+  if (!row) return { ok: true, rsvp: null };
+
+  const sideValues = { '신랑측': 'groom', '신부측': 'bride' };
+  const attendanceValues = { '참석': 'attending', '불참': 'not_attending' };
+  const mealValues = { '식사함': 'yes', '식사 안 함': 'no', '미정': 'undecided' };
+  return {
+    ok: true,
+    rsvp: {
+      side: sideValues[String(row[2])] || 'groom',
+      name: String(row[3] || ''),
+      attendance: attendanceValues[String(row[4])] || 'attending',
+      guestCount: Number(row[5]) || 0,
+      meal: mealValues[String(row[6])] || '',
+      note: String(row[7] || '')
+    }
+  };
 }
 
 function guestbookSpreadsheet_() {

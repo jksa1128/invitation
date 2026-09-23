@@ -121,6 +121,13 @@ const CONFIG = {
     pageSize: 5
   },
 
+  // ── 참석 여부 전달 ──
+  // 축하 전하기와 동일한 Google Apps Script 웹 앱을 사용합니다.
+  rsvp: {
+    enabled: true,
+    apiUrl: "https://script.google.com/macros/s/AKfycbzxmdkmlxDn6WivHLvmzx1LujpYcNblv1lQNrzUrpZJF4IkCtWRsoZGibE3QGqx-CB6/exec"
+  },
+
   // ── 카카오톡 공유 ──
   // Kakao Developers에서 JavaScript 키를 발급받아 입력하세요.
   // 제품 링크 관리의 웹 도메인과 JavaScript SDK 도메인에

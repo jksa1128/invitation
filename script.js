@@ -1331,6 +1331,215 @@
   }
 
   /* ═══════════════════════════════════════════
+     RSVP
+     ═══════════════════════════════════════════ */
+
+  function rsvpApiUrl() {
+    return String(
+      CONFIG.rsvp && CONFIG.rsvp.apiUrl ||
+      CONFIG.guestbook && CONFIG.guestbook.apiUrl ||
+      ''
+    ).trim();
+  }
+
+  function setRsvpSubmitting(button, submitting) {
+    button.disabled = submitting;
+    button.textContent = submitting ? '전달 중…' : '전달하기';
+  }
+
+  const rsvpState = {
+    submitted: localStorage.getItem('wedding_rsvp_submitted') === 'true',
+    response: null
+  };
+
+  function readCachedRsvp() {
+    try {
+      return JSON.parse(localStorage.getItem('wedding_rsvp_response') || 'null');
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function cacheRsvp(response) {
+    rsvpState.response = response;
+    rsvpState.submitted = true;
+    localStorage.setItem('wedding_rsvp_submitted', 'true');
+    localStorage.setItem('wedding_rsvp_response', JSON.stringify(response));
+  }
+
+  function rsvpStatusUrl() {
+    const baseUrl = rsvpApiUrl();
+    const query = new URLSearchParams({
+      action: 'rsvp',
+      clientId: guestbookClientId(),
+      t: String(Date.now())
+    });
+    return `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}${query}`;
+  }
+
+  function setRsvpSectionState() {
+    const submitted = rsvpState.submitted;
+    $('#rsvpStatus').textContent = submitted
+      ? '참석 여부가 전달되었습니다. 변경이 필요하면 수정해 주세요.'
+      : '예식 참석 여부를 전달해 주세요.';
+    $('#rsvpOpenBtn').hidden = submitted;
+    $('#rsvpEditBtn').hidden = !submitted;
+  }
+
+  function fillRsvpForm(form, response) {
+    if (!response) return;
+    const setRadio = (name, value) => {
+      const input = form.querySelector(`input[name="${name}"][value="${value}"]`);
+      if (input) input.checked = true;
+    };
+    setRadio('side', response.side);
+    setRadio('attendance', response.attendance);
+    setRadio('meal', response.meal || 'yes');
+    $('#rsvpName').value = response.name || '';
+    $('#rsvpGuestCount').value = String(response.guestCount || 1);
+    $('#rsvpNote').value = response.note || '';
+  }
+
+  function initRsvp() {
+    const dialog = $('#rsvpDialog');
+    const form = $('#rsvpForm');
+    const enabled = Boolean(CONFIG.rsvp && CONFIG.rsvp.enabled !== false && rsvpApiUrl());
+
+    if (!enabled) {
+      $('#rsvp').hidden = true;
+      return;
+    }
+
+    rsvpState.response = readCachedRsvp();
+    setRsvpSectionState();
+
+    const updateAttendanceDetails = () => {
+      const attending = form.elements.attendance.value === 'attending';
+      const details = $('#rsvpAttendanceDetails');
+      details.hidden = !attending;
+      $('#rsvpGuestCount').required = attending;
+      form.querySelectorAll('input[name="meal"]').forEach((input) => {
+        input.disabled = !attending;
+      });
+    };
+
+    const openDialog = (editing = false) => {
+      $('#rsvpFormError').textContent = '';
+      if (editing && rsvpState.response) {
+        fillRsvpForm(form, rsvpState.response);
+      } else if (!editing) {
+        form.reset();
+      }
+      updateAttendanceDetails();
+      dialog.showModal();
+    };
+
+    $('#rsvpOpenBtn').addEventListener('click', () => openDialog(false));
+    $('#rsvpEditBtn').addEventListener('click', async () => {
+      if (!rsvpState.response) await loadExistingRsvp(true);
+      if (rsvpState.response) {
+        openDialog(true);
+      } else {
+        showToast('기존 참석 정보를 불러오지 못했습니다');
+      }
+    });
+    $('#rsvpDialogClose').addEventListener('click', () => closeGuestbookDialog(dialog));
+    form.addEventListener('change', (event) => {
+      if (event.target.name === 'attendance') updateAttendanceDetails();
+    });
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const error = $('#rsvpFormError');
+      const submit = $('#rsvpSubmitBtn');
+      const nameInput = $('#rsvpName');
+      error.textContent = '';
+
+      if (!nameInput.value.trim()) {
+        error.textContent = '성함을 입력해 주세요.';
+        nameInput.focus();
+        return;
+      }
+
+      const attending = form.elements.attendance.value === 'attending';
+      const wasSubmitted = rsvpState.submitted;
+      const response = {
+        side: form.elements.side.value,
+        name: nameInput.value.trim(),
+        attendance: form.elements.attendance.value,
+        guestCount: attending ? Number($('#rsvpGuestCount').value) : 0,
+        meal: attending ? form.elements.meal.value : '',
+        note: $('#rsvpNote').value.trim()
+      };
+      setRsvpSubmitting(submit, true);
+      try {
+        await fetchGuestbookJson(
+          rsvpApiUrl(),
+          {
+            method: 'POST',
+            cache: 'no-store',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+              action: 'createRsvp',
+              clientId: guestbookClientId(),
+              ...response
+            })
+          },
+          '참석 여부를 전달하지 못했습니다.'
+        );
+        cacheRsvp(response);
+        setRsvpSectionState();
+        closeGuestbookDialog(dialog);
+        showToast(wasSubmitted ? '참석 여부가 수정되었습니다' : '참석 여부가 전달되었습니다');
+      } catch (requestError) {
+        error.textContent = guestbookErrorMessage(
+          requestError,
+          '참석 여부를 전달하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+        );
+      } finally {
+        setRsvpSubmitting(submit, false);
+      }
+    });
+
+    async function loadExistingRsvp(showLoading = false) {
+      const editButton = $('#rsvpEditBtn');
+      if (showLoading) {
+        editButton.disabled = true;
+        editButton.textContent = '기존 정보 불러오는 중…';
+      }
+      try {
+        const result = await fetchGuestbookJson(
+          rsvpStatusUrl(),
+          { cache: 'no-store' },
+          '참석 정보를 불러오지 못했습니다.'
+        );
+        if (result.rsvp) {
+          cacheRsvp(result.rsvp);
+          setRsvpSectionState();
+          return true;
+        }
+      } catch (error) {
+        console.warn('RSVP status request failed:', error);
+      } finally {
+        if (showLoading) {
+          editButton.disabled = false;
+          editButton.textContent = '전달 내용 수정하기';
+        }
+      }
+      return false;
+    }
+
+    updateAttendanceDetails();
+    if (rsvpState.submitted) {
+      loadExistingRsvp();
+    } else {
+      window.setTimeout(() => {
+        if (!dialog.open && !rsvpState.submitted) openDialog(false);
+      }, 900);
+    }
+  }
+
+  /* ═══════════════════════════════════════════
      Guestbook
      ═══════════════════════════════════════════ */
 
@@ -1720,6 +1929,7 @@
     initPhotoModal();
     initLocation();
     initInformation();
+    initRsvp();
     initAccounts();
     initGuestbook();
     initKakaoShare();
