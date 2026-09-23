@@ -1542,17 +1542,17 @@
     if (rsvpState.submitted) {
       loadExistingRsvp();
     } else {
-      const calendarSection = $('#calendarSection');
-      if (calendarSection) {
+      const locationSection = $('#location');
+      if (locationSection) {
         autoPromptObserver = new IntersectionObserver((entries) => {
           entries.forEach((entry) => {
-            const passedCalendar = entry.boundingClientRect.bottom <= 0;
-            if (passedCalendar && !dialog.open && !rsvpState.submitted) {
+            const passedLocation = entry.boundingClientRect.bottom <= 0;
+            if (passedLocation && !dialog.open && !rsvpState.submitted) {
               openDialog(false);
             }
           });
         }, { threshold: 0 });
-        autoPromptObserver.observe(calendarSection);
+        autoPromptObserver.observe(locationSection);
       }
     }
   }
