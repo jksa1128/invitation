@@ -1004,7 +1004,7 @@
   let modalImages = [];
   let modalIndex = 0;
   let modalScrollY = 0;
-  const MODAL_MAX_SCALE = 1.5;
+  const MODAL_MAX_SCALE = 1.75;
   let modalPhotoScale = 1;
   let modalPhotoX = 0;
   let modalPhotoY = 0;
